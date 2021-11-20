@@ -1,18 +1,19 @@
 #!/bin/bash
 
 clear
-echo "--- Airport simulation ---"
 read -p "Activate debug mode (y or n): " choice
 
 if [[ "$choice" == "y" ]]; then
 
-  gcc main.c -o main -D DEBUG
-  ./main
+  gcc ./lib/demo.c -o demo -D DEBUG
+  ./demo
+  rm demo
 
 elif [[ "$choice" == "n" ]]; then
 
-  gcc main.c -o main
-  ./main
+  gcc ./lib/demo.c -o demo
+  ./demo
+  rm demo
 
 else
   echo "Wrong command $choice"
