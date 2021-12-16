@@ -1,3 +1,0 @@
-#define SINGLE_QUEUE 0
-#define MULTI_QUEUE 1
-#define SITA_QUEUE 2

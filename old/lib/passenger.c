@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "../include/passenger.h"
-#include "../include/structs.h"
+#include "../../include/passenger.h"
+#include "../../include/structs.h"
 
 /*
  * Adds a new passenger to the given list
