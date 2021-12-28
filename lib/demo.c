@@ -81,7 +81,7 @@ int main(void){
 
     simulate_without_test(fptr, pass, res);
     simulate_single_queue_test(fptr, pass, res);
-    //simulate_multi_queue_test(fptr, pass, res);
+    simulate_multi_queue_test(fptr, pass, res);
 
     printf("%s: -----------------\n", DNAME);
     printf("%s: Cleaning up ...\n", DNAME);
@@ -220,7 +220,7 @@ void simulate_single_queue_test(FILE *fptr, passenger *pass, result *res){
     printf("%s: Simulating single queue covid test + single queue...\n", DNAME);
 
     for(i=0; i<MAXOFF; i++){
-        simulate_single_test(i+1, pass, res, TESTWAIT);
+        simulate_single_test(i+1, &pass, res, TESTWAIT);
         simulate_single_queue(i+1, MAXWAIT, pass, res);
         write_and_reset(fptr, res, pass);
     }
@@ -228,7 +228,7 @@ void simulate_single_queue_test(FILE *fptr, passenger *pass, result *res){
     printf("%s: Simulating single queue covid test + multi queue ...\n", DNAME);
 
     for(i=0; i<MAXOFF; i++){
-        simulate_single_test(i+1, pass, res, TESTWAIT);
+        simulate_single_test(i+1, &pass, res, TESTWAIT);
         simulate_multi_queue(i+1, MAXWAIT, pass, res);
         write_and_reset(fptr, res, pass);
     }
@@ -239,7 +239,7 @@ void simulate_single_queue_test(FILE *fptr, passenger *pass, result *res){
         for(i=0; i<MAXOFF/3; i++){
             for(j=0; j<MAXOFF/3; j++){
                 for(k=0; k<MAXOFF/3; k++){
-                    simulate_single_test(t+1, pass, res, TESTWAIT);
+                    simulate_single_test(t+1, &pass, res, TESTWAIT);
                     simulate_sita_queue(i+1, j+1, k+1, MAXWAIT, pass, res);
                     write_and_reset(fptr, res, pass);
                 }
@@ -263,7 +263,7 @@ void simulate_multi_queue_test(FILE *fptr, passenger *pass, result *res){
     printf("%s: Simulating multi queue covid test + single queue...\n", DNAME);
 
     for(i=0; i<MAXOFF; i++){
-        simulate_multi_test(i+1, pass, res, TESTWAIT);
+        simulate_multi_test(i+1, &pass, res, TESTWAIT);
         simulate_single_queue(i+1, MAXWAIT, pass, res);
         write_and_reset(fptr, res, pass);
     }
@@ -271,7 +271,7 @@ void simulate_multi_queue_test(FILE *fptr, passenger *pass, result *res){
     printf("%s: Simulating multi queue covid test + multi queue ...\n", DNAME);
 
     for(i=0; i<MAXOFF; i++){
-        simulate_multi_test(i+1, pass, res, TESTWAIT);
+        simulate_multi_test(i+1, &pass, res, TESTWAIT);
         simulate_multi_queue(i+1, MAXWAIT, pass, res);
         write_and_reset(fptr, res, pass);
     }
@@ -282,7 +282,7 @@ void simulate_multi_queue_test(FILE *fptr, passenger *pass, result *res){
         for(i=0; i<MAXOFF/3; i++){
             for(j=0; j<MAXOFF/3; j++){
                 for(k=0; k<MAXOFF/3; k++){
-                    simulate_multi_test(t+1, pass, res, TESTWAIT);
+                    simulate_multi_test(t+1, &pass, res, TESTWAIT);
                     simulate_sita_queue(i+1, j+1, k+1, MAXWAIT, pass, res);
                     write_and_reset(fptr, res, pass);
                 }

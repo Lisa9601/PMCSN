@@ -192,6 +192,7 @@ void add_passenger(passenger **head, passenger *new_pass){
     }
 
     prev->next = new_pass;
+    new_pass->next = NULL;
 }
 
 /*
@@ -235,10 +236,10 @@ void generate_arrivals(config * conf, int stop, passenger **list){
         // Green pass
         random = Random_num(2);
         if(random < conf->greenpass_p){
-            test_service = Exponential(1/conf->test_mu, 1);
+            test_service = -1;
         }
         else{
-            test_service = -1;
+            test_service = Exponential(1/conf->test_mu, 1);
         }
 
         // Check-in type
@@ -687,47 +688,51 @@ int find_covid_test_queue(element **queues, int queue_num, int *officers, passen
  * Simulate the covid test queue as a single queue
  *
  * off_num: number of officers for the queue
- * pass: pointer to the first passenger in the list
+ * pass: head of the list of passengers
  * res: pointer to a structure in which the results will be added
  * wait: how much time the passenger must wait for the test results
  *
  * return:
  */
-void simulate_single_test(int off_num, passenger *pass, result *res, int wait){
-    int num_test_pass, test_withdrawal;
+void simulate_single_test(int off_num, passenger **pass, result *res, int wait){
+    int num_test_pass;
     int officers[off_num];
     double test_wait, test_response;
-    passenger *prev, *p;
+    passenger *prev, *p, *temp;
 
     memset(officers, 0, sizeof(int)*off_num);
     num_test_pass = 0;
-    test_withdrawal = 0;
     test_wait = 0;
     test_response = 0;
-    prev = pass;
+    prev = NULL;
+    p = *pass;
 
-    for(p=pass; p!=NULL; p=p->next){
+    while(p){
         if(p->greenpass == 0){
             // Passenger who needs a covid test found
             handle_covid_test(officers, off_num, p, wait);
 
-            if(p->test_begin - p->test_arrival > wait){
-                test_withdrawal++;
+            num_test_pass++;
+            test_wait += p->test_begin - p->test_arrival;
+            test_response += p->test_departure - p->test_arrival;
+
+            // Remove from queue and insert again in the correct place
+            temp = p;
+            p = p->next;
+
+            if(!prev){
+                *pass = p;
             }
             else{
-                num_test_pass++;
-                test_wait += p->test_begin - p->test_arrival;
-                test_response += p->test_departure - p->test_arrival;
+                prev->next = p;
             }
 
-            // Remove from queue
-            prev->next = p->next;
-
-            add_passenger(&pass, p); // Insert again in the correct place
-            p = prev;
+            add_passenger(pass, temp);
         }
-
-        prev = p;
+        else{
+            prev = p;
+            p = p->next;
+        }
     }
 
     if(num_test_pass > 0){
@@ -746,28 +751,29 @@ void simulate_single_test(int off_num, passenger *pass, result *res, int wait){
  * Simulate covid test multi queue
  *
  * off_num: number of officers
- * pass: list of passengers
+ * pass: head of the passenger list
  * res: structure where the simulation results will be added
  * wait: how much time the passenger must wait for the test results
  *
  * return:
  */
-void simulate_multi_test(int off_num, passenger *pass, result *res, int wait){
+void simulate_multi_test(int off_num, passenger **pass, result *res, int wait){
     int i, num_test_pass;
     double mwait, mresponse;
     int officers[off_num];
     element *queues[off_num];
     element *e;
-    passenger *prev, *p;
+    passenger *prev, *p, *temp;
 
     memset(officers, 0, sizeof(int)*off_num);
     memset(queues, 0, sizeof(element *)*off_num);
     num_test_pass = 0;
     mwait = 0;
     mresponse = 0;
-    prev = pass;
+    prev = NULL;
+    p = *pass;
 
-    for(p=pass; p!=NULL; p=p->next){
+    while(p){
         if(p->greenpass == 0){
             // Find shortest queue
             i = find_covid_test_queue(queues, off_num, officers, p, wait);
@@ -781,14 +787,23 @@ void simulate_multi_test(int off_num, passenger *pass, result *res, int wait){
             mwait += p->test_begin - p->test_arrival;
             mresponse += p->test_departure - p->test_arrival;
 
-            // Remove from queue
-            prev->next = p->next;
+            // Remove from queue and insert again in the correct place
+            temp = p;
+            p = p->next;
 
-            add_passenger(&pass, p); // Insert again in the correct place
-            p = prev;
+            if(!prev){
+                *pass = p;
+            }
+            else{
+                prev->next = p;
+            }
+
+            add_passenger(pass, temp);
         }
-
-        prev = p;
+        else{
+            prev = p;
+            p = p->next;
+        }
     }
 
     if(num_test_pass > 0){
