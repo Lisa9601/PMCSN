@@ -215,6 +215,44 @@ void free_passengers(passenger **pass){
 }
 
 /*
+ * Reorder the passengers in the list
+ *
+ * head: head of the list of passengers
+ *
+ * return:
+ */
+void reorder_passengers(passenger **head){
+    passenger *prev, *p, *temp;
+
+    // Empty list
+    if(!head) return;
+
+    prev = NULL;
+    p = *head;
+
+    while(p){
+
+        if(p->next != NULL && (p->arrival > (p->next)->arrival)){
+            temp = p;
+            p = p->next;
+
+            if(prev == NULL){
+                *head = p;
+            }
+            else{
+                prev->next = p;
+            }
+            add_passenger(head, temp);
+
+        }
+        else{
+            prev = p;
+            p = p->next;
+        }
+    }
+}
+
+/*
  * Generates a list of random arrivals of passengers
  *
  * conf: pointer to a configuration structure
@@ -295,15 +333,21 @@ int find_officer(int *officers, int off_num){
  * queue_num: number of queues in the array
  * officers: array with last departure time for each officer
  * pass: passenger
+ * wait: maximum waiting time in the queues
  *
- * return: queue number
+ * return: queue number, -1 for withdrawal
  */
-int find_queue(element **queues, int queue_num, int *officers, passenger *pass){
+int find_queue(element **queues, int queue_num, int *officers, passenger *pass, int wait){
     int i, num, pass_num, lowest_pass_num;
     element *e;
 
     num = -1;
     lowest_pass_num = 1000000; // High value
+
+    // Passenger has already left
+    if(pass->arrival < 0){
+        return -1;
+    }
 
     for(i=0; i<queue_num; i++){
         if(queues[i] == NULL){
@@ -337,6 +381,11 @@ int find_queue(element **queues, int queue_num, int *officers, passenger *pass){
         pass->begin = officers[num];
     }
 
+    // Passenger withdrawal
+    if(pass->begin - pass->arrival > wait){
+        return -1;
+    }
+
     pass->departure = pass->begin + pass->service;
     officers[num] = pass->departure; // Update last departure time
 
@@ -349,11 +398,17 @@ int find_queue(element **queues, int queue_num, int *officers, passenger *pass){
  * officers: array with the last departure time for each officer
  * off_num: total number of officers for the queue
  * p: passenger
+ * wait: maximum wait in the queues
  *
- * return:
+ * return: 0 if successful, -1 if passenger has withdrawn
  */
-void handle_arrival(int *officers, int off_num, passenger *p){
+int handle_arrival(int *officers, int off_num, passenger *p, int wait){
     int i;
+
+    // Passenger has already left
+    if(p->arrival < 0){
+        return -1;
+    }
 
     // Find available officer
     i = find_officer(officers, off_num);
@@ -367,8 +422,15 @@ void handle_arrival(int *officers, int off_num, passenger *p){
         p->begin = officers[i];
     }
 
+    // Passenger withdrawal
+    if(p->begin - p->arrival > wait){
+        return -1;
+    }
+
     p->departure = p->begin + p->service;
     officers[i] = p->departure; // Update last departure time
+
+    return 0;
 }
 
 /*
@@ -384,7 +446,7 @@ void handle_arrival(int *officers, int off_num, passenger *p){
 void simulate_single_queue(int off_num, int wait, passenger *pass, result *res){
     int num_pass, num_withdrawal;
     int officers[off_num];
-    double mwait, mresponse;
+    double mwait, mresponse, mservice;
     passenger *p;
 
     memset(officers, 0, sizeof(int)*off_num);
@@ -393,28 +455,27 @@ void simulate_single_queue(int off_num, int wait, passenger *pass, result *res){
     num_withdrawal = 0;
     mwait = 0;
     mresponse = 0;
+    mservice = 0;
 
     for(p=pass; p!=NULL; p=p->next){
         // Handle passenger arrival
-        handle_arrival(officers, off_num, p);
-
-        if(p->begin - p->arrival > wait){
-            // Withdrawal
+        if(handle_arrival(officers, off_num, p, wait) < 0){
             num_withdrawal++;
         }
         else{
             num_pass++;
             mwait += p->begin - p->arrival;
             mresponse += p->departure - p->arrival;
+            mservice += p->service;
         }
     }
 
     // Add results
     res->type = SINGLE;
-    res->num_queues = 1;
     res->num_officers = off_num;
     res->mwait = mwait/num_pass;
     res->mresponse = mresponse/num_pass;
+    res->mservice = mservice/num_pass;
     res->withdrawal = (num_withdrawal/(double)(num_pass + num_withdrawal))*100;
 }
 
@@ -430,7 +491,7 @@ void simulate_single_queue(int off_num, int wait, passenger *pass, result *res){
  */
 void simulate_multi_queue(int off_num, int wait, passenger *pass, result *res){
     int i, num_pass, num_withdrawal;
-    double mwait, mresponse;
+    double mwait, mresponse, mservice;
     int officers[off_num];
     element *queues[off_num];
     element *e;
@@ -442,23 +503,26 @@ void simulate_multi_queue(int off_num, int wait, passenger *pass, result *res){
     num_pass = 0;
     mwait = 0;
     mresponse = 0;
+    mservice = 0;
 
     for(p=pass; p!=NULL; p=p->next){
         // Find shortest queue
-        i = find_queue(queues, off_num, officers, p);
-        // Add new element to queue
-        e = (element *)malloc(sizeof(element));
-        e->begin = p->begin;
-        e->next = NULL;
-        add_element(&queues[i], e);
+        i = find_queue(queues, off_num, officers, p, wait);
 
-        if(p->begin - p->arrival > wait){
+        if(i < 0){
             num_withdrawal++;
         }
         else{
+            // Add new element to queue
+            e = (element *)malloc(sizeof(element));
+            e->begin = p->begin;
+            e->next = NULL;
+            add_element(&queues[i], e);
+
             num_pass++;
             mwait += p->begin - p->arrival;
             mresponse += p->departure - p->arrival;
+            mservice += p->service;
         }
     }
 
@@ -469,10 +533,10 @@ void simulate_multi_queue(int off_num, int wait, passenger *pass, result *res){
 
     // Add results
     res->type = MULTI;
-    res->num_queues = off_num;
     res->num_officers = off_num;
     res->mwait = mwait/num_pass;
     res->mresponse = mresponse/num_pass;
+    res->mservice = mservice/num_pass;
     res->withdrawal = (num_withdrawal/(double)(num_pass + num_withdrawal))*100;
 }
 
@@ -496,6 +560,7 @@ void simulate_sita_queue(int off_small, int off_med, int off_big, int wait, pass
     int officers_big[off_big];
     double mwait, mwait_small, mwait_med, mwait_big;
     double mresponse, mresponse_small, mresponse_med, mresponse_big;
+    double mservice, mservice_small, mservice_med, mservice_big;
     passenger *p;
 
     memset(officers_small, 0, sizeof(int)*off_small);
@@ -504,29 +569,31 @@ void simulate_sita_queue(int off_small, int off_med, int off_big, int wait, pass
     num_pass = 0;
     mwait = 0;
     mresponse = 0;
+    mservice = 0;
     withdrawal = 0;
 
     num_pass_small = 0;
     mwait_small = 0;
     mresponse_small = 0;
+    mservice_small = 0;
     withdrawal_small = 0;
 
     num_pass_med = 0;
     mwait_med = 0;
     mresponse_med = 0;
+    mservice_med = 0;
     withdrawal_med = 0;
 
     num_pass_big = 0;
     mwait_big = 0;
     mresponse_big = 0;
+    mservice_big = 0;
     withdrawal_big = 0;
 
     for(p=pass; p!=NULL; p=p->next){
         // Pick the right queue
         if(p->type == ONLINE){
-            handle_arrival(officers_small, off_small, p);
-
-            if(p->begin - p->arrival > wait){
+            if(handle_arrival(officers_small, off_small, p, wait) < 0){
                 withdrawal++;
                 withdrawal_small++;
             }
@@ -535,12 +602,14 @@ void simulate_sita_queue(int off_small, int off_med, int off_big, int wait, pass
                 num_pass_small++;
                 mwait_small += p->begin - p->arrival;
                 mresponse_small += p->departure - p->arrival;
+                mservice_small += p->service;
+                mwait += p->begin - p->arrival;
+                mresponse += p->departure - p->arrival;
+                mservice += p->service;
             }
         }
         else if(p->type == NATIONAL){
-            handle_arrival(officers_med, off_med, p);
-
-            if(p->begin - p->arrival > wait){
+            if(handle_arrival(officers_med, off_med, p, wait) < 0){
                 withdrawal++;
                 withdrawal_med++;
             }
@@ -549,12 +618,14 @@ void simulate_sita_queue(int off_small, int off_med, int off_big, int wait, pass
                 num_pass_med++;
                 mwait_med += p->begin - p->arrival;
                 mresponse_med += p->departure - p->arrival;
+                mservice_med += p->service;
+                mwait += p->begin - p->arrival;
+                mresponse += p->departure - p->arrival;
+                mservice += p->service;
             }
         }
         else{
-            handle_arrival(officers_big, off_big, p);
-
-            if(p->begin - p->arrival > wait){
+            if(handle_arrival(officers_big, off_big, p, wait) < 0){
                 withdrawal++;
                 withdrawal_big++;
             }
@@ -563,31 +634,35 @@ void simulate_sita_queue(int off_small, int off_med, int off_big, int wait, pass
                 num_pass_big++;
                 mwait_big += p->begin - p->arrival;
                 mresponse_big += p->departure - p->arrival;
+                mservice_big += p->service;
+                mwait += p->begin - p->arrival;
+                mresponse += p->departure - p->arrival;
+                mservice += p->service;
             }
         }
-
-        mwait += p->begin - p->arrival;
-        mresponse += p->departure - p->arrival;
     }
 
     // Add results
     res->type = SITA;
-    res->num_queues = 3;
     res->num_officers = off_small + off_med + off_big;
     res->mwait = mwait/num_pass;
     res->mresponse = mresponse/num_pass;
+    res->mservice = mservice/num_pass;
     res->withdrawal = (withdrawal/(double)(num_pass + withdrawal))*100;
     res->num_off_small = off_small;
     res->mwait_small = mwait_small/num_pass_small;
-    res-> mresponse_small = mresponse_small/num_pass_small;
+    res->mresponse_small = mresponse_small/num_pass_small;
+    res->mservice_small = mservice_small/num_pass_small;
     res->withdrawal_small = (withdrawal_small/(double)(num_pass_small + withdrawal_small))*100;
     res->num_off_med = off_med;
     res->mwait_med = mwait_med/num_pass_med;
     res->mresponse_med = mresponse_med/num_pass_med;
+    res->mservice_med = mservice_med/num_pass_med;
     res->withdrawal_med = (withdrawal_med/(double)(num_pass_med + withdrawal_med))*100;
     res->num_off_big = off_big;
     res->mwait_big = mwait_big/num_pass_big;
     res->mresponse_big = mresponse_big/num_pass_big;
+    res->mservice_big = mservice_big/num_pass_big;
     res->withdrawal_big = (withdrawal_big/(double)(num_pass_big + withdrawal_big))*100;
 }
 
@@ -600,10 +675,11 @@ void simulate_sita_queue(int off_small, int off_med, int off_big, int wait, pass
  * off_num: total number of officers for the queue
  * p: passenger
  * wait: time a passenger has to wait for the test results
+ * positive: probability of being positive to the test
  *
- * return:
+ * return: 0 if successful, -1 if passenger has withdrawn
  */
-void handle_covid_test(int *officers, int off_num, passenger *p, int wait){
+int handle_covid_test(int *officers, int off_num, passenger *p, int wait, double positive){
     int i;
 
     // Find available officer
@@ -618,10 +694,25 @@ void handle_covid_test(int *officers, int off_num, passenger *p, int wait){
         p->test_begin = officers[i];
     }
 
+    // Passenger withdrawal
+    if(p->test_begin - p->test_arrival > wait){
+        p->arrival = -1;
+        return -1;
+    }
+
     p->test_departure = p->test_begin + p->test_service;
     officers[i] = p->test_departure; // Update last departure time
+
+    if(Random_num(3) < positive){
+        // Passenger it's positive
+        p->arrival = -1;
+        return -1;
+    }
+
     p->arrival = p->test_departure + wait;
     p->greenpass = 1;
+
+    return 0;
 }
 
 /*
@@ -632,10 +723,11 @@ void handle_covid_test(int *officers, int off_num, passenger *p, int wait){
  * officers: array with last departure time for each officer
  * pass: passenger
  * wait: time a passenger has to wait for the test results
+ * positive: probability of being positive to the covid test
  *
- * return: queue number
+ * return: queue number, -1 for withdrawal
  */
-int find_covid_test_queue(element **queues, int queue_num, int *officers, passenger *pass, int wait){
+int find_covid_test_queue(element **queues, int queue_num, int *officers, passenger *pass, int wait, double positive){
     int i, num, pass_num, lowest_pass_num;
     element *e;
 
@@ -648,6 +740,12 @@ int find_covid_test_queue(element **queues, int queue_num, int *officers, passen
             pass->test_begin = pass->test_arrival;
             pass->test_departure = pass->test_begin + pass->test_service;
             pass->arrival = pass->test_departure + wait;
+
+            if(Random_num(3) < positive){
+                pass->arrival = -1;
+                return -1;
+            }
+
             pass->greenpass = 1;
             officers[i] = pass->test_departure; // Update last departure time
             return i;
@@ -676,8 +774,20 @@ int find_covid_test_queue(element **queues, int queue_num, int *officers, passen
         pass->test_begin = officers[num];
     }
 
+    // Passenger withdrawal
+    if(pass->begin - pass->arrival > wait){
+        pass->arrival = -1;
+        return -1;
+    }
+
     pass->test_departure = pass->test_begin + pass->test_service;
     pass->arrival = pass->test_departure + wait;
+
+    if(Random_num(3) < positive){
+        pass->arrival = -1;
+        return -1;
+    }
+
     pass->greenpass = 1;
     officers[num] = pass->test_departure; // Update last departure time
 
@@ -691,43 +801,46 @@ int find_covid_test_queue(element **queues, int queue_num, int *officers, passen
  * pass: head of the list of passengers
  * res: pointer to a structure in which the results will be added
  * wait: how much time the passenger must wait for the test results
+ * positive: probability of being positive to the covid test
  *
  * return:
  */
-void simulate_single_test(int off_num, passenger **pass, result *res, int wait){
+void simulate_single_test(int off_num, passenger **pass, result *res, int wait, double positive){
     int num_test_pass;
     int officers[off_num];
-    double test_wait, test_response;
+    double test_wait, test_response, test_service;
     passenger *prev, *p, *temp;
 
     memset(officers, 0, sizeof(int)*off_num);
     num_test_pass = 0;
     test_wait = 0;
     test_response = 0;
+    test_service = 0;
     prev = NULL;
     p = *pass;
 
     while(p){
         if(p->greenpass == 0){
             // Passenger who needs a covid test found
-            handle_covid_test(officers, off_num, p, wait);
+            if(handle_covid_test(officers, off_num, p, wait, positive) >= 0){
+                num_test_pass++;
+                test_wait += p->test_begin - p->test_arrival;
+                test_response += p->test_departure - p->test_arrival;
+                test_service += p->test_service;
 
-            num_test_pass++;
-            test_wait += p->test_begin - p->test_arrival;
-            test_response += p->test_departure - p->test_arrival;
+                // Remove from queue and insert again in the correct place
+                temp = p;
+                p = p->next;
 
-            // Remove from queue and insert again in the correct place
-            temp = p;
-            p = p->next;
+                if(!prev){
+                    *pass = p;
+                }
+                else{
+                    prev->next = p;
+                }
 
-            if(!prev){
-                *pass = p;
+                add_passenger(pass, temp);
             }
-            else{
-                prev->next = p;
-            }
-
-            add_passenger(pass, temp);
         }
         else{
             prev = p;
@@ -738,13 +851,14 @@ void simulate_single_test(int off_num, passenger **pass, result *res, int wait){
     if(num_test_pass > 0){
         test_wait = test_wait/num_test_pass;
         test_response = test_response/num_test_pass;
+        test_service = test_service/num_test_pass;
     }
 
     res->test_type = SINGLE;
-    res->test_queues = 1;
     res->test_officers = off_num;
     res->mwait_test = test_wait;
     res->mresponse_test = test_response;
+    res->mservice_test = test_service;
 }
 
 /*
@@ -754,12 +868,13 @@ void simulate_single_test(int off_num, passenger **pass, result *res, int wait){
  * pass: head of the passenger list
  * res: structure where the simulation results will be added
  * wait: how much time the passenger must wait for the test results
+ * positive: probability of being positive to the covid test
  *
  * return:
  */
-void simulate_multi_test(int off_num, passenger **pass, result *res, int wait){
+void simulate_multi_test(int off_num, passenger **pass, result *res, int wait, double positive){
     int i, num_test_pass;
-    double mwait, mresponse;
+    double mwait, mresponse, mservice;
     int officers[off_num];
     element *queues[off_num];
     element *e;
@@ -770,35 +885,40 @@ void simulate_multi_test(int off_num, passenger **pass, result *res, int wait){
     num_test_pass = 0;
     mwait = 0;
     mresponse = 0;
+    mservice = 0;
     prev = NULL;
     p = *pass;
 
     while(p){
         if(p->greenpass == 0){
             // Find shortest queue
-            i = find_covid_test_queue(queues, off_num, officers, p, wait);
-            // Add new element to queue
-            e = (element *)malloc(sizeof(element));
-            e->begin = p->test_begin;
-            e->next = NULL;
-            add_element(&queues[i], e);
+            i = find_covid_test_queue(queues, off_num, officers, p, wait, positive);
 
-            num_test_pass++;
-            mwait += p->test_begin - p->test_arrival;
-            mresponse += p->test_departure - p->test_arrival;
+            if(i >= 0){
+                // Add new element to queue
+                e = (element *)malloc(sizeof(element));
+                e->begin = p->test_begin;
+                e->next = NULL;
+                add_element(&queues[i], e);
 
-            // Remove from queue and insert again in the correct place
-            temp = p;
-            p = p->next;
+                num_test_pass++;
+                mwait += p->test_begin - p->test_arrival;
+                mresponse += p->test_departure - p->test_arrival;
+                mservice += p->test_service;
 
-            if(!prev){
-                *pass = p;
+                // Remove from queue and insert again in the correct place
+                temp = p;
+                p = p->next;
+
+                if(!prev){
+                    *pass = p;
+                }
+                else{
+                    prev->next = p;
+                }
+
+                add_passenger(pass, temp);
             }
-            else{
-                prev->next = p;
-            }
-
-            add_passenger(pass, temp);
         }
         else{
             prev = p;
@@ -809,6 +929,7 @@ void simulate_multi_test(int off_num, passenger **pass, result *res, int wait){
     if(num_test_pass > 0){
         mwait = mwait/num_test_pass;
         mresponse = mresponse/num_test_pass;
+        mservice = mservice/num_test_pass;
     }
 
     for(i=0; i<off_num; i++){
@@ -816,8 +937,8 @@ void simulate_multi_test(int off_num, passenger **pass, result *res, int wait){
     }
 
     res->test_type = MULTI;
-    res->test_queues = off_num;
     res->test_officers = off_num;
     res->mwait_test = mwait;
     res->mresponse_test = mresponse;
+    res->mservice_test = mservice;
 }

@@ -7,16 +7,21 @@
 
 #define DNAME "demo"
 #define MAXLINE 4096
-#define HEADER "checkin_type,queues,off,mwait,mresponse,withdrawal,test_type,test_queues,test_off,test_mwait,test_mresponse,"\
-                "off_small,off_med,off_big,small_mwait,med_mwait,big_mwait,small_mresponse,med_mresponse,big_mresponse, "    \
-                "withd_small, withd_med, withd_big"
+#define HEADER "checkin_type,off,mwait,mresponse,mservice,withdrawal,test_type,test_off,test_mwait,test_mresponse,"\
+                "test_mservice,test_withdrawal,off_small,small_mwait,small_mresponse,small_mservice,small_withdrawal,"\
+                "off_med,med_mwait,med_mresponse,med_mservice,med_withdrawal,off_big,big_mwait,big_mresponse,big_service,"\
+                "big_withdrawal"
+
+#define NOQUEUE 0
+#define SINGLETYPE 1
+#define MULTITYPE 2
+#define SITATYPE 3
 
 void print_hello(void);
 void write_and_reset(FILE *fptr, result *res, passenger *pass);
-void simulate_without_test(FILE *fptr, passenger *pass, result *res);
-void simulate_single_queue_test(FILE *fptr, passenger *pass, result *res);
-void simulate_multi_queue_test(FILE *fptr, passenger *pass, result *res);
+void simulate(FILE *fptr, passenger *pass, result *res, int check, int test);
 void cleanup(FILE *fptr, config *conf, result *res, passenger **pass);
+
 
 int main(void){
     FILE *fptr = NULL;
@@ -27,7 +32,7 @@ int main(void){
     print_hello();
 
     // INITIALIZATION
-    printf("%s: Initializing ...\n", DNAME);
+    printf("Initializing ...\n");
 
     // Open file
     fptr = (FILE *)fopen(FILENAME, "w");
@@ -77,14 +82,22 @@ int main(void){
         return -1;
     }
 
-    printf("%s: -----------------\n", DNAME);
+    printf("-----------------\n");
 
-    simulate_without_test(fptr, pass, res);
-    simulate_single_queue_test(fptr, pass, res);
-    simulate_multi_queue_test(fptr, pass, res);
+    simulate(fptr, pass, res, SINGLETYPE, NOQUEUE);
+    simulate(fptr, pass, res, MULTITYPE, NOQUEUE);
+    simulate(fptr, pass, res, SITATYPE, NOQUEUE);
 
-    printf("%s: -----------------\n", DNAME);
-    printf("%s: Cleaning up ...\n", DNAME);
+    simulate(fptr, pass, res, SINGLETYPE, SINGLETYPE);
+    simulate(fptr, pass, res, MULTITYPE, SINGLETYPE);
+    simulate(fptr, pass, res, SITATYPE, SINGLETYPE);
+
+    simulate(fptr, pass, res, SINGLETYPE, MULTITYPE);
+    simulate(fptr, pass, res, MULTITYPE, MULTITYPE);
+    simulate(fptr, pass, res, SITATYPE, MULTITYPE);
+
+    printf("-----------------\n");
+    printf("Cleaning up ...\n");
 
     cleanup(fptr, conf, res, &pass);
     return 0;
@@ -95,7 +108,7 @@ int main(void){
 /*
  * Print a simple hello message
  */
-void print_hello(void){
+void print_hello(void) {
     system("clear");
 
     printf(" ------------------------ \n");
@@ -116,41 +129,45 @@ void write_and_reset(FILE *fptr, result *res, passenger *pass){
     char line[MAXLINE];
     passenger *p;
 
-    snprintf(line, sizeof(char)*MAXLINE, "\n%s,%d,%d,%f,%f,%f,%s,%d,%d,%f,%f,%d,%d,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f",
-             res->type, res->num_queues, res->num_officers, res->mwait, res->mresponse, res->withdrawal, res->test_type,
-             res->test_queues, res->test_officers, res->mwait_test, res->mresponse_test, res->num_off_small,
-             res->num_off_med, res->num_off_big, res->mwait_small, res->mwait_med, res->mwait_big, res->mresponse_small,
-             res->mresponse_med, res->mresponse_big, res->withdrawal_small, res->withdrawal_med, res->withdrawal_big);
+    snprintf(line, sizeof(char)*MAXLINE, "\n%s,%d,%f,%f,%f,%f,%s,%d,%f,%f,%f,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f",
+             res->type, res->num_officers, res->mwait, res->mresponse, res->mservice, res->withdrawal,
+             res->test_type, res->test_officers, res->mwait_test, res->mresponse_test, res->mservice_test,
+             res->num_off_small, res->mwait_small, res->mresponse_small, res->mservice_small, res->withdrawal_small,
+             res->num_off_med, res->mwait_med, res->mresponse_med, res->mservice_med, res->withdrawal_med,
+             res->num_off_big, res->mwait_big, res->mresponse_big, res->mservice_big, res->withdrawal_big);
 
     // Write results to file
     if(fwrite(line, 1, strlen(line), fptr) == 0) perror("Error writing new line to file");
 
     // Reset result
     res->type = NONE;
-    res->num_queues = 0;
     res->num_officers = 0;
     res->mwait = 0;
     res->mresponse = 0;
+    res->mservice = 0;
     res->withdrawal = 0;
-
-    res->test_type = NONE;
-    res->test_queues = 0;
-    res->test_officers = 0;
-    res->mwait_test = 0;
-    res->mresponse_test = 0;
 
     res->num_off_small = 0;
     res->mwait_small = 0;
     res->mresponse_small = 0;
+    res->mservice_small = 0;
     res->withdrawal_small = 0;
     res->num_off_med = 0;
     res->mwait_med = 0;
     res->mresponse_med = 0;
+    res->mservice_med = 0;
     res->withdrawal_med = 0;
     res->num_off_big = 0;
     res->mwait_big = 0;
     res->mresponse_big = 0;
+    res->mservice_big = 0;
     res->withdrawal_big = 0;
+
+    res->test_type = NONE;
+    res->test_officers = 0;
+    res->mwait_test = 0;
+    res->mservice_test = 0;
+    res->mresponse_test = 0;
 
     // Reset passenger list
     for(p=pass; p!=NULL; p=p->next){
@@ -168,126 +185,46 @@ void write_and_reset(FILE *fptr, result *res, passenger *pass){
 }
 
 /*
- * Simulates all queue configurations without the covid test area
+ * Simulate the specified configuration
  *
  * fptr: pointer to the results file
  * pass: pointer to the first element of the passengers' list
  * res: pointer to the result structure
+ * check: check-in area type
+ * test: test area type
  *
  * return:
  */
-void simulate_without_test(FILE *fptr, passenger *pass, result *res){
-    int i, j, k;
+void simulate(FILE *fptr, passenger *pass, result *res, int check, int test){
 
-    printf("%s: Simulating single queue ...\n", DNAME);
-
-    for(i=0; i<MAXOFF; i++){
-        simulate_single_queue(i+1, MAXWAIT, pass, res);
-        write_and_reset(fptr, res, pass);
+    // Simulate covid test area
+    if(test == SINGLETYPE){
+        printf("Single queue covid test + ");
+        simulate_single_test(TESTOFF, &pass, res, TESTWAIT, POSITIVEP);
+    }
+    else if(test == MULTITYPE){
+        printf("Multi queue covid test + ");
+        simulate_multi_test(TESTOFF, &pass, res, TESTWAIT, POSITIVEP);
     }
 
-    printf("%s: Simulating multi queue ...\n", DNAME);
-
-    for(i=0; i<MAXOFF; i++){
-        simulate_multi_queue(i+1, MAXWAIT, pass, res);
-        write_and_reset(fptr, res, pass);
+    // Simulate check-in area
+    if(check == SINGLETYPE){
+        printf("Single queue check-in ...\n");
+        simulate_single_queue(OFF, MAXWAIT, pass, res);
+    }
+    else if(check == MULTITYPE){
+        printf("Multi queue check-in ...\n");
+        simulate_multi_queue(OFF, MAXWAIT, pass, res);
+    }
+    else if(check == SITATYPE){
+        printf("Sita queue check-in ...\n");
+        simulate_sita_queue(ONLINEOFF, NATIONALOFF, INTERNATIONALOFF, MAXWAIT, pass, res);
     }
 
-    printf("%s: Simulating sita queue ...\n", DNAME);
-
-    for(i=0; i<MAXOFF/3; i++){
-        for(j=0; j<MAXOFF/3; j++){
-            for(k=0; k<MAXOFF/3; k++){
-                simulate_sita_queue(i+1, j+1, k+1, MAXWAIT, pass, res);
-                write_and_reset(fptr, res, pass);
-            }
-        }
-    }
-}
-
-/*
- * Simulates all queue configurations with a single queue covid test area
- *
- * fptr: pointer to the results file
- * pass: pointer to the first element of the passengers' list
- * res: pointer to the result structure
- *
- * return:
- */
-void simulate_single_queue_test(FILE *fptr, passenger *pass, result *res){
-    int i, j, k, t;
-
-    printf("%s: Simulating single queue covid test + single queue...\n", DNAME);
-
-    for(i=0; i<MAXOFF; i++){
-        simulate_single_test(i+1, &pass, res, TESTWAIT);
-        simulate_single_queue(i+1, MAXWAIT, pass, res);
-        write_and_reset(fptr, res, pass);
-    }
-
-    printf("%s: Simulating single queue covid test + multi queue ...\n", DNAME);
-
-    for(i=0; i<MAXOFF; i++){
-        simulate_single_test(i+1, &pass, res, TESTWAIT);
-        simulate_multi_queue(i+1, MAXWAIT, pass, res);
-        write_and_reset(fptr, res, pass);
-    }
-
-    printf("%s: Simulating single queue covid test + sita queue ...\n", DNAME);
-
-    for(t=0; t<MAXOFF; t++){
-        for(i=0; i<MAXOFF/3; i++){
-            for(j=0; j<MAXOFF/3; j++){
-                for(k=0; k<MAXOFF/3; k++){
-                    simulate_single_test(t+1, &pass, res, TESTWAIT);
-                    simulate_sita_queue(i+1, j+1, k+1, MAXWAIT, pass, res);
-                    write_and_reset(fptr, res, pass);
-                }
-            }
-        }
-    }
-}
-
-/*
- * Simulates all queue configurations with a multi queue covid test area
- *
- * fptr: pointer to the results file
- * pass: pointer to the first element of the passengers' list
- * res: pointer to the result structure
- *
- * return:
- */
-void simulate_multi_queue_test(FILE *fptr, passenger *pass, result *res){
-    int i, j, k, t;
-
-    printf("%s: Simulating multi queue covid test + single queue...\n", DNAME);
-
-    for(i=0; i<MAXOFF; i++){
-        simulate_multi_test(i+1, &pass, res, TESTWAIT);
-        simulate_single_queue(i+1, MAXWAIT, pass, res);
-        write_and_reset(fptr, res, pass);
-    }
-
-    printf("%s: Simulating multi queue covid test + multi queue ...\n", DNAME);
-
-    for(i=0; i<MAXOFF; i++){
-        simulate_multi_test(i+1, &pass, res, TESTWAIT);
-        simulate_multi_queue(i+1, MAXWAIT, pass, res);
-        write_and_reset(fptr, res, pass);
-    }
-
-    printf("%s: Simulating multi queue covid test + sita queue ...\n", DNAME);
-
-    for(t=0; t<MAXOFF; t++){
-        for(i=0; i<MAXOFF/3; i++){
-            for(j=0; j<MAXOFF/3; j++){
-                for(k=0; k<MAXOFF/3; k++){
-                    simulate_multi_test(t+1, &pass, res, TESTWAIT);
-                    simulate_sita_queue(i+1, j+1, k+1, MAXWAIT, pass, res);
-                    write_and_reset(fptr, res, pass);
-                }
-            }
-        }
+    // Cleanup
+    write_and_reset(fptr, res, pass);
+    if(test != NOQUEUE){
+        reorder_passengers(&pass);
     }
 }
 

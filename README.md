@@ -3,7 +3,7 @@ This project simulates the check-in area of an airport, which is
 usually an area that sees high passenger traffic. Our aim is to 
 analyze different queue configurations in order to determine the best policy 
 that should be used to make costumers happy. The underlining assumption
-it's that airport passenger will choose one company over another based
+it's that airport passengers will choose one company over another based
 on the wait in the check-in queues. If the wait it's too long a passenger
 will probably choose another company for her/his next flight. It should also
 be taken into consideration that, given the current covid-19 emergency, the delays can
@@ -12,12 +12,12 @@ green pass should perform.
 
 ## Configurations
 The available queue configurations are:
-* **SINGLE QUEUE** - Only one queue in which all passenger will be enqueued in FIFO
+* **SINGLE** - Only one queue in which all passenger will be enqueued in FIFO
   (First In First Out) order. When an officer it's available, picks the first element
   from the queue
-* **MULTI QUEUE** - One FIFO queue for each officer. When a passenger arrives, she/he can
+* **MULTI** - One FIFO queue for each officer. When a passenger arrives, she/he can
   choose the queue with the least number of enqueued passengers
-* **SITA QUEUE** - 3 FIFO queues for 3 different types of passengers (Online, National, International check-in).
+* **SITA** - 3 FIFO queues for 3 different types of passengers (Online, National, International check-in).
   When a passenger arrives, she/he is enqueued in the corresponding queue based on 
   the service type
   
@@ -37,9 +37,13 @@ directory.
 #### Demo parameters:
 * FILENAME : name of the file where the result will be written 
   (ex. "filename.csv")
-* STOP: simulation end time
-* MAXOFF: maximum number of officers
-* SEED: initial seed
+* STOP : simulation end time (sec)
+* OFF : number of officers for the check-in queues
+* ONLINEOFF : number of officers for online check-in
+* NATIONALOFF : number of officers for national check-in
+* INTERNATIONALOFF : number of officers for international check-in
+* TESTOFF : number of officers for the test queues
+* SEED : initial seed
 
 #### Check-in area parameters:
 * LAMBDA : passenger arrival rate
@@ -54,6 +58,7 @@ directory.
 #### Covid test area parameters:
 * TESTMU : covid test service rate
 * GREENPASSP : probability of having the greenpass
+* POSITIVEP : probability of being positive to the covid test
 * TESTWAIT: time to wait for the covid test results (usually 15 min)
 
 ## Deployment
