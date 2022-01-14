@@ -1,4 +1,6 @@
 import csv
+import formatter
+import resultFile
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -198,6 +200,8 @@ def readUniqueResult(f, c, value):
 
 if __name__ == "__main__":
 
+    formatter.formatter()
+
     # Analisi del dataset dell'aeroporto di Los Angeles
 
     ora_array = ["00:00 - 1:00", "1:00 - 2:00", "2:00 - 3:00", "3:00 - 4:00", "4:00 - 5:00", "5:00 - 6:00",
@@ -230,6 +234,8 @@ if __name__ == "__main__":
     istogramma(ora_array, rspInternational, 'Hour', 'Response Time', 'International flight', "graph/rspInternational.png")
 
     # Analisi dei risultati della simulazione
+
+    resultFile.creaFileFinale()
 
     columnSimulation = readFile(fSimulazione)
 

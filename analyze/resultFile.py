@@ -20,11 +20,10 @@ def unisci_file(f, c, new_file):
                 file.write(line+"\n")
             else:
                 file.write(line)
-            print(line)
     file.close()
 
 
-if __name__ == "__main__":
+def creaFileFinale():
 
     with open("dataset/example.csv", mode='r') as f:
         reader = csv.reader(f)
@@ -32,7 +31,6 @@ if __name__ == "__main__":
     c = []
     for e in header:
         c.append(e)
-    print(c)
 
     with open(file_finale, 'a') as f_object:
         writer_object = csv.writer(f_object)
