@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include "../config.h"
 #include "../include/simulation.h"
 
-#define DNAME "demo"
 #define MAXLINE 4096
 #define HEADER "checkin_type,off,mwait,mresponse,mservice,withdrawal,test_type,test_off,test_mwait,test_mresponse,"\
                 "test_mservice,test_withdrawal,off_small,small_mwait,small_mresponse,small_mservice,small_withdrawal,"\
@@ -129,12 +127,12 @@ void write_and_reset(FILE *fptr, result *res, passenger *pass){
     char line[MAXLINE];
     passenger *p;
 
-    snprintf(line, sizeof(char)*MAXLINE, "\n%s,%d,%f,%f,%f,%f,%s,%d,%f,%f,%f,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f",
-             res->type, res->num_officers, res->mwait, res->mresponse, res->mservice, res->withdrawal,
-             res->test_type, res->test_officers, res->mwait_test, res->mresponse_test, res->mservice_test,
-             res->num_off_small, res->mwait_small, res->mresponse_small, res->mservice_small, res->withdrawal_small,
-             res->num_off_med, res->mwait_med, res->mresponse_med, res->mservice_med, res->withdrawal_med,
-             res->num_off_big, res->mwait_big, res->mresponse_big, res->mservice_big, res->withdrawal_big);
+    snprintf(line, sizeof(char)*MAXLINE, "\n%s,%d,%f,%f,%f,%f,%s,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f",
+             res->type, res->num_officers, res->mwait/60, res->mresponse/60, res->mservice/60, res->withdrawal,
+             res->test_type, res->test_officers, res->mwait_test/60, res->mresponse_test/60, res->mservice_test/60, res->withdrawal_test,
+             res->num_off_small, res->mwait_small/60, res->mresponse_small/60, res->mservice_small/60, res->withdrawal_small,
+             res->num_off_med, res->mwait_med/60, res->mresponse_med/60, res->mservice_med/60, res->withdrawal_med,
+             res->num_off_big, res->mwait_big/60, res->mresponse_big/60, res->mservice_big/60, res->withdrawal_big);
 
     // Write results to file
     if(fwrite(line, 1, strlen(line), fptr) == 0) perror("Error writing new line to file");
@@ -168,6 +166,7 @@ void write_and_reset(FILE *fptr, result *res, passenger *pass){
     res->mwait_test = 0;
     res->mservice_test = 0;
     res->mresponse_test = 0;
+    res->withdrawal_test = 0;
 
     // Reset passenger list
     for(p=pass; p!=NULL; p=p->next){

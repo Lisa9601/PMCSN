@@ -808,7 +808,7 @@ int find_covid_test_queue(element **queues, int queue_num, int *officers, passen
 void simulate_single_test(int off_num, passenger **pass, result *res, int wait, double positive){
     int num_test_pass;
     int officers[off_num];
-    double test_wait, test_response, test_service;
+    double test_wait, test_response, test_service, withdrawal;
     passenger *prev, *p, *temp;
 
     memset(officers, 0, sizeof(int)*off_num);
@@ -816,6 +816,7 @@ void simulate_single_test(int off_num, passenger **pass, result *res, int wait, 
     test_wait = 0;
     test_response = 0;
     test_service = 0;
+    withdrawal = 0;
     prev = NULL;
     p = *pass;
 
@@ -841,6 +842,9 @@ void simulate_single_test(int off_num, passenger **pass, result *res, int wait, 
 
                 add_passenger(pass, temp);
             }
+            else{
+                withdrawal++;
+            }
         }
         else{
             prev = p;
@@ -852,6 +856,7 @@ void simulate_single_test(int off_num, passenger **pass, result *res, int wait, 
         test_wait = test_wait/num_test_pass;
         test_response = test_response/num_test_pass;
         test_service = test_service/num_test_pass;
+        withdrawal = (withdrawal/(withdrawal+num_test_pass))*100;
     }
 
     res->test_type = SINGLE;
@@ -859,6 +864,7 @@ void simulate_single_test(int off_num, passenger **pass, result *res, int wait, 
     res->mwait_test = test_wait;
     res->mresponse_test = test_response;
     res->mservice_test = test_service;
+    res->withdrawal_test = withdrawal;
 }
 
 /*
@@ -874,7 +880,7 @@ void simulate_single_test(int off_num, passenger **pass, result *res, int wait, 
  */
 void simulate_multi_test(int off_num, passenger **pass, result *res, int wait, double positive){
     int i, num_test_pass;
-    double mwait, mresponse, mservice;
+    double mwait, mresponse, mservice, withdrawal;
     int officers[off_num];
     element *queues[off_num];
     element *e;
@@ -886,6 +892,7 @@ void simulate_multi_test(int off_num, passenger **pass, result *res, int wait, d
     mwait = 0;
     mresponse = 0;
     mservice = 0;
+    withdrawal = 0;
     prev = NULL;
     p = *pass;
 
@@ -921,6 +928,7 @@ void simulate_multi_test(int off_num, passenger **pass, result *res, int wait, d
             }
         }
         else{
+            withdrawal++;
             prev = p;
             p = p->next;
         }
@@ -930,6 +938,7 @@ void simulate_multi_test(int off_num, passenger **pass, result *res, int wait, d
         mwait = mwait/num_test_pass;
         mresponse = mresponse/num_test_pass;
         mservice = mservice/num_test_pass;
+        withdrawal = (withdrawal/(withdrawal+num_test_pass))*100;
     }
 
     for(i=0; i<off_num; i++){
@@ -941,4 +950,5 @@ void simulate_multi_test(int off_num, passenger **pass, result *res, int wait, d
     res->mwait_test = mwait;
     res->mresponse_test = mresponse;
     res->mservice_test = mservice;
+    res->withdrawal_test = withdrawal;
 }

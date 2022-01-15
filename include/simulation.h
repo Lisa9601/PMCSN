@@ -83,6 +83,7 @@ typedef struct result{
     double mwait_test;      // Average passenger covid test wait
     double mresponse_test;  // Average passenger covid test response time
     double mservice_test;   // Average passenger covid test service time
+    double withdrawal_test; // Percentage of passenger who withdrew from the covid test queue
 
 } result;
 
