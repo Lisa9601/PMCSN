@@ -16,16 +16,14 @@
 #define SITATYPE 3
 
 void print_hello(void);
-void write_and_reset(FILE *fptr, result *res, passenger *pass);
-void simulate(FILE *fptr, passenger *pass, result *res, int check, int test);
-void cleanup(FILE *fptr, config *conf, result *res, passenger **pass);
-
+void setup_config(config *conf);
+void write_result(FILE *fptr, result *res);
+void compare_configurations(FILE *fptr, config *conf, result *res);
 
 int main(void){
     FILE *fptr = NULL;
     config *conf = NULL;
     result *res = NULL;
-    passenger *pass = NULL;
 
     print_hello();
 
@@ -47,17 +45,9 @@ int main(void){
         return -1;
     }
 
-    conf->lambda = LAMBDA;
-    conf->test_mu = TESTMU;
-    conf->online_mu = ONLINEMU;
-    conf->national_mu = NATIONALMU;
-    conf->international_mu = INTERNATIONALMU;
-    conf->greenpass_p = GREENPASSP;
-    conf->online_p = ONLINEP;
-    conf->national_p = NATIONALP;
-    conf->international_p = INTERNATIONALP;
+    setup_config(conf);
 
-    // Create new structure in which the results will be kept
+    // Create new result structure
     res = (result *)malloc(sizeof(result));
     if(!res){
         perror("Result creation error");
@@ -66,38 +56,13 @@ int main(void){
         return -1;
     }
 
-    init_simulation(SEED);  // Initializing seed
-
     // Write header to the csv file
     if(fwrite(HEADER, 1, strlen(HEADER), fptr) == 0) perror("Error writing header to file");
 
-    // Generate passenger arrivals
-    generate_arrivals(conf, STOP, &pass);
-    if(pass == NULL){
-        fclose(fptr);
-        free(conf);
-        free(res);
-        return -1;
-    }
+    compare_configurations(fptr, conf, res);
 
-    printf("-----------------\n");
+    fclose(fptr);
 
-    simulate(fptr, pass, res, SINGLETYPE, NOQUEUE);
-    simulate(fptr, pass, res, MULTITYPE, NOQUEUE);
-    simulate(fptr, pass, res, SITATYPE, NOQUEUE);
-
-    simulate(fptr, pass, res, SINGLETYPE, SINGLETYPE);
-    simulate(fptr, pass, res, MULTITYPE, SINGLETYPE);
-    simulate(fptr, pass, res, SITATYPE, SINGLETYPE);
-
-    simulate(fptr, pass, res, SINGLETYPE, MULTITYPE);
-    simulate(fptr, pass, res, MULTITYPE, MULTITYPE);
-    simulate(fptr, pass, res, SITATYPE, MULTITYPE);
-
-    printf("-----------------\n");
-    printf("Cleaning up ...\n");
-
-    cleanup(fptr, conf, res, &pass);
     return 0;
 }
 
@@ -115,131 +80,111 @@ void print_hello(void) {
 }
 
 /*
- * Writes the results to the file and cleans up the result and passenger structs
+ * Setup configuration
  *
- * fptr: pointer to the results file
- * res: pointer to the result structure
- * pass: pointer to the list of passengers
+ * conf: pointer to a configuration structure
  *
  * return:
  */
-void write_and_reset(FILE *fptr, result *res, passenger *pass){
-    char line[MAXLINE];
-    passenger *p;
+void setup_config(config *conf){
 
-    snprintf(line, sizeof(char)*MAXLINE, "\n%s,%d,%f,%f,%f,%f,%s,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f",
-             res->type, res->num_officers, res->mwait/60, res->mresponse/60, res->mservice/60, res->withdrawal,
-             res->test_type, res->test_officers, res->mwait_test/60, res->mresponse_test/60, res->mservice_test/60, res->withdrawal_test,
-             res->num_off_small, res->mwait_small/60, res->mresponse_small/60, res->mservice_small/60, res->withdrawal_small,
-             res->num_off_med, res->mwait_med/60, res->mresponse_med/60, res->mservice_med/60, res->withdrawal_med,
-             res->num_off_big, res->mwait_big/60, res->mresponse_big/60, res->mservice_big/60, res->withdrawal_big);
+    conf->seed = SEED;
+    conf->stop = STOP;
+    conf->maxwait = MAXWAIT;
+    conf->testwait = TESTWAIT;
+
+    conf->off = OFF;
+    conf->online_off = ONLINEOFF;
+    conf->national_off = NATIONALOFF;
+    conf->international_off = INTERNATIONALOFF;
+    conf->test_off = TESTOFF;
+
+    conf->lambda_1_5 = LAMBDA_1_5;
+    conf->lambda_5_9 = LAMBDA_5_9;
+    conf->lambda_9_13 = LAMBDA_9_13;
+    conf->lambda_13_17 = LAMBDA_13_17;
+    conf->lambda_17_21 = LAMBDA_17_21;
+    conf->lambda_21_1 = LAMBDA_21_1;
+
+    conf->test_mu = TESTMU;
+    conf->online_mu = ONLINEMU;
+    conf->national_mu = NATIONALMU;
+    conf->international_mu = INTERNATIONALMU;
+
+    conf->greenpass_p = GREENPASSP;
+    conf->positive_p = POSITIVEP;
+    conf->online_p = ONLINEP;
+    conf->national_p = NATIONALP;
+    conf->international_p = INTERNATIONALP;
+}
+
+/*
+ * Writes the results to the file
+ *
+ * fptr: pointer to the results file
+ * res: pointer to the result structure
+ *
+ * return:
+ */
+void write_result(FILE *fptr, result *res) {
+    char line[MAXLINE];
+
+    snprintf(line, sizeof(char) * MAXLINE,
+             "\n%s,%d,%f,%f,%f,%f,%s,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f,%d,%f,%f,%f,%f",
+             res->type, res->num_officers, res->mwait / 60, res->mresponse / 60, res->mservice / 60, res->withdrawal,
+             res->test_type, res->test_officers, res->mwait_test / 60, res->mresponse_test / 60,
+             res->mservice_test / 60, res->withdrawal_test,
+             res->num_off_small, res->mwait_small / 60, res->mresponse_small / 60, res->mservice_small / 60,
+             res->withdrawal_small,
+             res->num_off_med, res->mwait_med / 60, res->mresponse_med / 60, res->mservice_med / 60,
+             res->withdrawal_med,
+             res->num_off_big, res->mwait_big / 60, res->mresponse_big / 60, res->mservice_big / 60,
+             res->withdrawal_big);
 
     // Write results to file
-    if(fwrite(line, 1, strlen(line), fptr) == 0) perror("Error writing new line to file");
+    if (fwrite(line, 1, strlen(line), fptr) == 0) perror("Error writing new line to file");
 
-    // Reset result
-    res->type = NONE;
-    res->num_officers = 0;
-    res->mwait = 0;
-    res->mresponse = 0;
-    res->mservice = 0;
-    res->withdrawal = 0;
-
-    res->num_off_small = 0;
-    res->mwait_small = 0;
-    res->mresponse_small = 0;
-    res->mservice_small = 0;
-    res->withdrawal_small = 0;
-    res->num_off_med = 0;
-    res->mwait_med = 0;
-    res->mresponse_med = 0;
-    res->mservice_med = 0;
-    res->withdrawal_med = 0;
-    res->num_off_big = 0;
-    res->mwait_big = 0;
-    res->mresponse_big = 0;
-    res->mservice_big = 0;
-    res->withdrawal_big = 0;
-
-    res->test_type = NONE;
-    res->test_officers = 0;
-    res->mwait_test = 0;
-    res->mservice_test = 0;
-    res->mresponse_test = 0;
-    res->withdrawal_test = 0;
-
-    // Reset passenger list
-    for(p=pass; p!=NULL; p=p->next){
-        p->begin = 0;
-        p->departure = 0;
-
-        p->test_begin = 0;
-        p->test_departure = 0;
-
-        if(p->test_arrival >= 0){
-            p->greenpass = 0;
-            p->arrival = p->test_arrival;
-        }
-    }
-}
-
-/*
- * Simulate the specified configuration
- *
- * fptr: pointer to the results file
- * pass: pointer to the first element of the passengers' list
- * res: pointer to the result structure
- * check: check-in area type
- * test: test area type
- *
- * return:
- */
-void simulate(FILE *fptr, passenger *pass, result *res, int check, int test){
-
-    // Simulate covid test area
-    if(test == SINGLETYPE){
-        printf("Single queue covid test + ");
-        simulate_single_test(TESTOFF, &pass, res, TESTWAIT, POSITIVEP);
-    }
-    else if(test == MULTITYPE){
-        printf("Multi queue covid test + ");
-        simulate_multi_test(TESTOFF, &pass, res, TESTWAIT, POSITIVEP);
-    }
-
-    // Simulate check-in area
-    if(check == SINGLETYPE){
-        printf("Single queue check-in ...\n");
-        simulate_single_queue(OFF, MAXWAIT, pass, res);
-    }
-    else if(check == MULTITYPE){
-        printf("Multi queue check-in ...\n");
-        simulate_multi_queue(OFF, MAXWAIT, pass, res);
-    }
-    else if(check == SITATYPE){
-        printf("Sita queue check-in ...\n");
-        simulate_sita_queue(ONLINEOFF, NATIONALOFF, INTERNATIONALOFF, MAXWAIT, pass, res);
-    }
-
-    // Cleanup
-    write_and_reset(fptr, res, pass);
-    if(test != NOQUEUE){
-        reorder_passengers(&pass);
-    }
-}
-
-/*
- * Clean up the simulation
- *
- * fprt: pointer to the results file
- * conf: pointer to the configuration structure
- * res: pointer to the result structure
- * pass: pointer to the head of the list of passengers
- *
- * return:
- */
-void cleanup(FILE *fptr, config *conf, result *res, passenger **pass){
-    fclose(fptr);
-    free(conf);
     free(res);
-    free_passengers(pass);
+}
+
+/*
+ * Compare different configurations
+ *
+ * fprt: pointer to the file in which the results will be written
+ * conf: pointer to a configuration structure
+ * res: pointer to a result structure
+ *
+ * return:
+ */
+void compare_configurations(FILE *fptr, config *conf, result *res){
+
+    printf("Comparing different configurations:\n");
+    printf("-----------------\n");
+
+    printf("Check-in single / Test single\n");
+    res = simulate(conf, res, SINGLE, SINGLE);
+    write_result(fptr, res);
+
+    printf("Check-in single / Test multi\n");
+    res = simulate(conf ,res, SINGLE, MULTI);
+    write_result(fptr, res);
+
+    printf("Check-in multi / Test single\n");
+    res = simulate(conf, res, MULTI, SINGLE);
+    write_result(fptr, res);
+
+    printf("Check-in multi / Test multi\n");
+    res = simulate(conf, res, MULTI, MULTI);
+    write_result(fptr, res);
+
+    printf("Check-in sita / Test single\n");
+    res = simulate(conf, res, SITA, SINGLE);
+    write_result(fptr, res);
+
+    printf("Check-in sita / Test multi\n");
+    res = simulate(conf, res, SITA, MULTI);
+    write_result(fptr, res);
+
+    printf("-----------------\n");
+    printf("END\n");
 }

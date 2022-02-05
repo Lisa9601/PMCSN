@@ -46,7 +46,12 @@ directory.
 * SEED : initial seed
 
 #### Check-in area parameters:
-* LAMBDA : passenger arrival rate
+* LAMBDA_1_5 : passenger arrival rate between 1:00:01 and 5:00:00
+* LAMBDA_5_9 : passenger arrival rate between 5:00:01 and 9:00:00
+* LAMBDA_9_13 : passenger arrival rate between 9:00:01 and 13:00:00
+* LAMBDA_13_17 : passenger arrival rate between 13:00:01 and 17:00:00
+* LAMBDA_17_21 : passenger arrival rate between 17:00:01 and 21:00:00
+* LAMBDA_21_1 : passenger arrival rate between 21:00:01 and 1:00:00
 * ONLINEMU : online check-in passenger service rate
 * NATIONALMU : national check-in passenger service rate
 * INTERNATIONALMU : international check-in passenger service rate
