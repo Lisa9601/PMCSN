@@ -7,6 +7,7 @@
 #define NATIONALOFF 9
 #define INTERNATIONALOFF 40
 #define TESTOFF 10
+#define ITERATIONS 20
 
 // Check-in area parameters
 #define LAMBDA_1_5 0.00125
@@ -25,6 +26,6 @@
 
 // Covid test area parameters
 #define TESTMU 0.016667
-#define GREENPASSP 0.9
+#define GREENPASSP 1
 #define POSITIVEP 0.20
 #define TESTWAIT 15*60

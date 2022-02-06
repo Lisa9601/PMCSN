@@ -19,28 +19,10 @@ static int *low_officers;
 static int *med_officers;
 static int *high_officers;
 
+static arrival *arr_list;
+static service *serv_list;
+static long last_arr;
 
-typedef struct arrival{
-
-    int test;           // Whether the passenger has to take a covid test or not
-    int checkin_type;   // Passenger check-in type
-    int time;           // Time of arrival
-    struct arrival *next;
-
-} arrival;
-
-typedef struct service{
-
-    int test;           // Whether the passenger has to take a covid test or not
-    int checkin_type;   // Type of service
-    int arrival;        // Arrival time
-    int start;          // Begin of service time
-    int end;            // End of service time
-    int withdrawal;     // Whether the passenger has withdrawn from the queue
-    int officer;        // Number of officers that will serve the passenger
-    struct service *next;
-
-} service;
 
 /*
  * Initialize simulation with the given seed
@@ -51,12 +33,6 @@ typedef struct service{
  */
 void init_simulation(long seed){
     PlantSeeds(seed);
-    clock = 0;
-    officers = NULL;
-    queues = NULL;
-    low_officers = NULL;
-    med_officers = NULL;
-    high_officers = NULL;
 }
 
 /*
@@ -111,23 +87,23 @@ arrival *create_arrival(config *conf, int time){
         new->time += time + Exponential(1/conf->lambda_1_5, 0);
     }
     else if(time > 5*60*60 && time <= 9*60*60) {
-        new->time += time + Exponential(1/conf->lambda_5_9, 0);
+        new->time += time + Exponential(1/conf->lambda_5_9, 1);
     }
     else if(time > 9*60*60 && time <= 13*60*60) {
-        new->time += time + Exponential(1/conf->lambda_9_13, 0);
+        new->time += time + Exponential(1/conf->lambda_9_13, 2);
     }
     else if(time > 13*60*60 && time <= 17*60*60) {
-        new->time += time + Exponential(1/conf->lambda_13_17, 0);
+        new->time += time + Exponential(1/conf->lambda_13_17, 3);
     }
     else if(time > 17*60*60 && time <= 21*60*60) {
-        new->time += time + Exponential(1/conf->lambda_17_21, 0);
+        new->time += time + Exponential(1/conf->lambda_17_21, 4);
     }
     else{
-        new->time += time + Exponential(1/conf->lambda_21_1, 0);
+        new->time += time + Exponential(1/conf->lambda_21_1, 5);
     }
 
     // Green pass
-    random = Random_num(2);
+    random = Random_num(6);
     if(random < conf->greenpass_p){
         new->test = 0;
     }
@@ -136,7 +112,7 @@ arrival *create_arrival(config *conf, int time){
     }
 
     // Check-in type
-    random = Random_num(3);
+    random = Random_num(7);
     if(random < conf->online_p){
         new->checkin_type = ONLINE;
 
@@ -202,7 +178,7 @@ void remove_arrival(arrival **list){
     arrival *temp;
 
     // Empty list
-    if(list == NULL) return;
+    if(list == NULL || *list == NULL) return;
 
     temp = *list;
     *list = temp->next;
@@ -266,7 +242,7 @@ service *create_service(config *conf, int checkin_type, int test, int arrival, i
 
     if(test > 0){
         //Covid test
-        if(Random_num(4) < conf->positive_p){
+        if(Random_num(8) < conf->positive_p){
             new->withdrawal = 1;
         }
     }
@@ -281,17 +257,17 @@ service *create_service(config *conf, int checkin_type, int test, int arrival, i
 
         // End time
         if(test > 0){
-            new->end = new->start + Exponential(1/conf->test_mu, 1);
+            new->end = new->start + Exponential(1/conf->test_mu, 9);
         }
         else{
             if(checkin_type == ONLINE){
-                new->end = new->start + Exponential(1/conf->online_mu, 1);
+                new->end = new->start + Exponential(1/conf->online_mu, 10);
             }
             else if(checkin_type == NATIONAL){
-                new->end = new->start + Exponential(1/conf->national_mu, 1);
+                new->end = new->start + Exponential(1/conf->national_mu, 11);
             }
             else{
-                new->end = new->start + Exponential(1/conf->international_mu, 1);
+                new->end = new->start + Exponential(1/conf->international_mu, 12);
             }
         }
     }
@@ -370,7 +346,7 @@ void remove_service(service **list){
     service *temp;
 
     // Empty list
-    if(list == NULL) return;
+    if(list == NULL || *list == NULL) return;
 
     temp = *list;
     *list = temp->next;
@@ -1100,22 +1076,75 @@ void update_result(config *conf, result *res, char *checkin, char *test){
     }
 }
 
+// STATE ---------------------------------------------------------------------------------------------------------------
+
+/*
+ * Loads the state for the new simulation
+ *
+ * state: pointer to a state structure
+ *
+ * return: 0 success, -1 failure
+ */
+int load_state(state *st){
+
+    if(!st || st->clock == 0){
+        return -1;
+    }
+
+    clock = st->clock;
+    officers = st->officers;
+    queues = st->queues;
+    low_officers = st->low_officers;
+    med_officers = st->med_officers;
+    high_officers = st->high_officers;
+    test_officers = st->test_officers;
+    test_queues = st->test_queues;
+    arr_list = st->arr_list;
+    serv_list = st->serv_list;
+    last_arr = st->last_arr;
+
+    return 0;
+}
+
+/*
+ * Save the current state of the simulation
+ *
+ * st: pointer to a state structure
+ *
+ * return:
+ */
+void save_state(state *st){
+
+    st->clock = clock;
+    st->officers = officers;
+    st->queues = queues;
+    st->low_officers = low_officers;
+    st->med_officers = med_officers;
+    st->high_officers = high_officers;
+    st->test_officers = test_officers;
+    st->test_queues = test_queues;
+    st->arr_list = arr_list;
+    st->serv_list = serv_list;
+    st->last_arr = last_arr;
+}
+
 // SIMULATION ----------------------------------------------------------------------------------------------------------
 
 /*
  * Simulate the given configuration
  *
  * conf: pointer to a configuration structure
+ * st: pointer to a state structure
  * res: pointer to a result structure
  * checkin: check-in area configuration type
  * test: test area configuration type
  *
- * return: pointer to a result structure, NULL on error
+ * return:
  */
-result *simulate(config *conf, result *res, char *checkin, char *test){
-    long last_arr;
-    arrival *parr, *arr_list;
-    service *pser, *serv_list;
+void simulate(config *conf, state *st, result *res, char *checkin, char *test){
+    long stop;
+    arrival *parr;
+    service *pser;
     int sim_officers[conf->off];
     long sim_queues[conf->off];
     int sim_low_officers[conf->online_off];
@@ -1126,30 +1155,36 @@ result *simulate(config *conf, result *res, char *checkin, char *test){
 
     // Initialize
     init_simulation(conf->seed);
-    memset(sim_officers, 0, sizeof(int)*conf->off);
-    memset(sim_queues, 0, sizeof(long)*conf->off);
-    memset(sim_low_officers, 0, sizeof(int)*conf->online_off);
-    memset(sim_med_officers, 0, sizeof(int)*conf->national_off);
-    memset(sim_high_officers, 0, sizeof(int)*conf->international_off);
-    memset(sim_test_officers, 0, sizeof(int)*conf->test_off);
-    memset(sim_test_queues, 0, sizeof(int)*conf->test_off);
-    arr_list = NULL;
-    serv_list = NULL;
-    last_arr = 0;
 
-    // Assign to global variables
-    officers = sim_officers;
-    queues = sim_queues;
-    low_officers = sim_low_officers;
-    med_officers = sim_med_officers;
-    high_officers = sim_high_officers;
-    test_officers = sim_test_officers;
-    test_queues = sim_test_queues;
+    if(load_state(st) < 0){
+        clock = 0;
+        memset(sim_officers, 0, sizeof(int)*conf->off);
+        memset(sim_queues, 0, sizeof(long)*conf->off);
+        memset(sim_low_officers, 0, sizeof(int)*conf->online_off);
+        memset(sim_med_officers, 0, sizeof(int)*conf->national_off);
+        memset(sim_high_officers, 0, sizeof(int)*conf->international_off);
+        memset(sim_test_officers, 0, sizeof(int)*conf->test_off);
+        memset(sim_test_queues, 0, sizeof(int)*conf->test_off);
+        arr_list = NULL;
+        serv_list = NULL;
+        last_arr = 0;
+
+        // Assign to global variables
+        officers = sim_officers;
+        queues = sim_queues;
+        low_officers = sim_low_officers;
+        med_officers = sim_med_officers;
+        high_officers = sim_high_officers;
+        test_officers = sim_test_officers;
+        test_queues = sim_test_queues;
+    }
+
+    stop = clock + conf->stop;
 
     // Reset result structure
     reset_result(res);
 
-    while (clock <= conf->stop) {
+    while (clock <= stop) {
 
         parr = arr_list;
 
@@ -1179,7 +1214,7 @@ result *simulate(config *conf, result *res, char *checkin, char *test){
     while(serv_list){
         pser = serv_list;
 
-        if(pser->end > conf->stop) break;
+        if(pser->end > stop) break;
 
         handle_service(conf, res, pser, &arr_list, checkin, test);
         remove_service(&serv_list);
@@ -1187,5 +1222,6 @@ result *simulate(config *conf, result *res, char *checkin, char *test){
 
     update_result(conf, res, checkin, test); // Update result structure with new data
 
-    return res;
+    if(st) save_state(st);  // Save the state for future iterations
+
 }

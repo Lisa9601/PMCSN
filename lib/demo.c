@@ -19,6 +19,7 @@ void print_hello(void);
 void setup_config(config *conf);
 void write_result(FILE *fptr, result *res);
 void compare_configurations(FILE *fptr, config *conf, result *res);
+void multiple_run(FILE *fptr, config *conf, result *res, char *checkin, char *test);
 
 int main(void){
     FILE *fptr = NULL;
@@ -59,9 +60,17 @@ int main(void){
     // Write header to the csv file
     if(fwrite(HEADER, 1, strlen(HEADER), fptr) == 0) perror("Error writing header to file");
 
-    compare_configurations(fptr, conf, res);
+    //compare_configurations(fptr, conf, res);
+    multiple_run(fptr, conf, res, SINGLE, SINGLE);
+    //multiple_run(fptr, conf, res, SINGLE, MULTI);
+    //multiple_run(fptr, conf, res, MULTI, SINGLE);
+    //multiple_run(fptr, conf, res, MULTI, MULTI);
+    //multiple_run(fptr, conf, res, SITA, SINGLE);
+    //multiple_run(fptr, conf, res, SITA, MULTI);
 
     fclose(fptr);
+    free(conf);
+    free(res);
 
     return 0;
 }
@@ -143,8 +152,6 @@ void write_result(FILE *fptr, result *res) {
 
     // Write results to file
     if (fwrite(line, 1, strlen(line), fptr) == 0) perror("Error writing new line to file");
-
-    free(res);
 }
 
 /*
@@ -162,29 +169,78 @@ void compare_configurations(FILE *fptr, config *conf, result *res){
     printf("-----------------\n");
 
     printf("Check-in single / Test single\n");
-    res = simulate(conf, res, SINGLE, SINGLE);
+    simulate(conf, NULL, res, SINGLE, SINGLE);
     write_result(fptr, res);
 
     printf("Check-in single / Test multi\n");
-    res = simulate(conf ,res, SINGLE, MULTI);
+    simulate(conf , NULL, res, SINGLE, MULTI);
     write_result(fptr, res);
 
     printf("Check-in multi / Test single\n");
-    res = simulate(conf, res, MULTI, SINGLE);
+    simulate(conf, NULL, res, MULTI, SINGLE);
     write_result(fptr, res);
 
     printf("Check-in multi / Test multi\n");
-    res = simulate(conf, res, MULTI, MULTI);
+    simulate(conf, NULL, res, MULTI, MULTI);
     write_result(fptr, res);
 
     printf("Check-in sita / Test single\n");
-    res = simulate(conf, res, SITA, SINGLE);
+    simulate(conf, NULL, res, SITA, SINGLE);
     write_result(fptr, res);
 
     printf("Check-in sita / Test multi\n");
-    res = simulate(conf, res, SITA, MULTI);
+    simulate(conf, NULL, res, SITA, MULTI);
     write_result(fptr, res);
 
     printf("-----------------\n");
     printf("END\n");
+}
+
+/*
+ * Run a single configuration multiple times
+ *
+ * fprt: pointer to the file in which the results will be written
+ * conf: pointer to a configuration structure
+ * res: pointer to a result structure
+ * checkin: check-in configuration type
+ * test: covid test configuration type
+ *
+ * return:
+ */
+void multiple_run(FILE *fptr, config *conf, result *res, char *checkin, char *test){
+    state *st;
+    int i;
+
+    st = (state *)malloc(sizeof(state));
+    if(!st){
+        perror("Unable to create new state structure");
+        return;
+    }
+
+    // Init state
+    st->clock = 0;
+    st->officers = NULL;
+    st->queues = NULL;
+    st->low_officers = NULL;
+    st->med_officers = NULL;
+    st->high_officers = NULL;
+    st->test_officers = NULL;
+    st->test_queues = NULL;
+    st->arr_list = NULL;
+    st->serv_list = NULL;
+    st->last_arr = 0;
+
+    printf("Simulating Check-in %s / Test %s :\n", checkin, test);
+    printf("-----------------\n");
+
+    for(i=0; i<ITERATIONS; i++){
+        printf("Iteration %d\n", i+1);
+        simulate(conf, st, res, checkin, test);
+        write_result(fptr, res);
+    }
+
+    printf("-----------------\n");
+    printf("END\n");
+
+    free(st);
 }

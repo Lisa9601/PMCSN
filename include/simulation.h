@@ -43,12 +43,54 @@ typedef struct config {
 
 } config;
 
+// Structure which keeps a passenger arrival info
+typedef struct arrival{
+
+    int test;           // Whether the passenger has to take a covid test or not
+    int checkin_type;   // Passenger check-in type
+    int time;           // Time of arrival
+    struct arrival *next;
+
+} arrival;
+
+// Structure which keeps a passenger service info
+typedef struct service{
+
+    int test;           // Whether the passenger has to take a covid test or not
+    int checkin_type;   // Type of service
+    int arrival;        // Arrival time
+    int start;          // Begin of service time
+    int end;            // End of service time
+    int withdrawal;     // Whether the passenger has withdrawn from the queue
+    int officer;        // Number of officers that will serve the passenger
+    struct service *next;
+
+} service;
+
+// Structure which keeps the simulation state
+typedef struct state{
+
+    long clock;             // Simulation clock
+    int *officers;          // Array of officers
+    long *queues;           // Array of queues
+    int *test_officers;     // Array of test officers
+    long *test_queues;      // Array of test queues
+    int *low_officers;      // Array of low officers
+    int *med_officers;      // Array of med officers
+    int *high_officers;     // Array of high officers
+
+    arrival *arr_list;      // List of passenger arrivals
+    service *serv_list;     // List of passenger services
+    long last_arr;          // Last arrival time
+
+} state;
+
 // Structure which keeps the test results
 typedef struct result{
 
     char *type;             // Check-in area configuration type (SINGLE, MULTI, SITA)
     int num_officers;       // Total number of officers
-    long num_pass;           // Total number of passengers
+    long num_pass;          // Total number of passengers
     double mwait;           // Average passenger wait
     double mresponse;       // Average passenger response time
     double mservice;        // Average service time
@@ -88,4 +130,4 @@ typedef struct result{
 } result;
 
 void init_simulation(long seed);
-result *simulate(config *conf, result *res, char *checkin, char *test);
+void simulate(config *conf, state *st, result *res, char *checkin, char *test);
