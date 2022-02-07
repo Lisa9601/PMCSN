@@ -60,8 +60,8 @@ int main(void){
     // Write header to the csv file
     if(fwrite(HEADER, 1, strlen(HEADER), fptr) == 0) perror("Error writing header to file");
 
-    //compare_configurations(fptr, conf, res);
-    multiple_run(fptr, conf, res, SINGLE, SINGLE);
+    compare_configurations(fptr, conf, res);
+    //multiple_run(fptr, conf, res, SINGLE, SINGLE);
     //multiple_run(fptr, conf, res, SINGLE, MULTI);
     //multiple_run(fptr, conf, res, MULTI, SINGLE);
     //multiple_run(fptr, conf, res, MULTI, MULTI);
@@ -72,6 +72,7 @@ int main(void){
     free(conf);
     free(res);
 
+    printf("END\n");
     return 0;
 }
 
@@ -193,7 +194,6 @@ void compare_configurations(FILE *fptr, config *conf, result *res){
     write_result(fptr, res);
 
     printf("-----------------\n");
-    printf("END\n");
 }
 
 /*
@@ -221,13 +221,19 @@ void multiple_run(FILE *fptr, config *conf, result *res, char *checkin, char *te
     st->clock = 0;
     st->officers = NULL;
     st->queues = NULL;
+    st->lastdep = NULL;
     st->low_officers = NULL;
+    st->low_lastdep = NULL;
     st->med_officers = NULL;
+    st->med_lastdep = NULL;
     st->high_officers = NULL;
+    st->high_lastdep = NULL;
     st->test_officers = NULL;
     st->test_queues = NULL;
+    st->test_lastdep = NULL;
     st->arr_list = NULL;
     st->serv_list = NULL;
+    st->testserv_list = NULL;
     st->last_arr = 0;
 
     printf("Simulating Check-in %s / Test %s :\n", checkin, test);
@@ -240,7 +246,6 @@ void multiple_run(FILE *fptr, config *conf, result *res, char *checkin, char *te
     }
 
     printf("-----------------\n");
-    printf("END\n");
 
     free(st);
 }

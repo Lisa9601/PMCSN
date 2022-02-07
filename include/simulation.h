@@ -73,6 +73,7 @@ typedef struct state{
     long clock;             // Simulation clock
     int *officers;          // Array of officers
     long *queues;           // Array of queues
+    long *lastdep;          // Array of last departure times
     int *test_officers;     // Array of test officers
     long *test_queues;      // Array of test queues
     int *low_officers;      // Array of low officers
@@ -81,7 +82,12 @@ typedef struct state{
 
     arrival *arr_list;      // List of passenger arrivals
     service *serv_list;     // List of passenger services
+    service *testserv_list; // List of passenger test services
     long last_arr;          // Last arrival time
+    long *test_lastdep;      // Last covid test departure
+    long *low_lastdep;       // Low last departure time
+    long *med_lastdep;       // Med last departure time
+    long *high_lastdep;      // High last departure time
 
 } state;
 

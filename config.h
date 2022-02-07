@@ -2,11 +2,11 @@
 #define FILENAME "demo.csv"
 #define SEED 123456789
 #define STOP 24*60*60
-#define OFF 20
+#define OFF 10
 #define ONLINEOFF 1
-#define NATIONALOFF 9
-#define INTERNATIONALOFF 40
-#define TESTOFF 10
+#define NATIONALOFF 10
+#define INTERNATIONALOFF 10
+#define TESTOFF 5
 #define ITERATIONS 20
 
 // Check-in area parameters
@@ -17,8 +17,8 @@
 #define LAMBDA_17_21 0.519305
 #define LAMBDA_21_1 0.273333
 #define ONLINEMU 0.016667
-#define NATIONALMU 0.016667
-#define INTERNATIONALMU 0.003333
+#define NATIONALMU 0.003333
+#define INTERNATIONALMU 0.0016667
 #define ONLINEP 0
 #define NATIONALP 0.08118282
 #define INTERNATIONALP 0.918817181
@@ -26,6 +26,6 @@
 
 // Covid test area parameters
 #define TESTMU 0.016667
-#define GREENPASSP 1
-#define POSITIVEP 0.20
+#define GREENPASSP 0.8838
+#define POSITIVEP 0.1122
 #define TESTWAIT 15*60
