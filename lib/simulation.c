@@ -666,7 +666,7 @@ int handle_sita_arrival(config *conf, arrival *arr, service **list){
     }
     else if(arr->checkin_type == NATIONAL){
         // Online test arrival
-        i = find_officer(med_officers, conf->online_off);
+        i = find_officer(med_officers, conf->national_off);
 
         if(i < 0){
             // No officer available
@@ -677,7 +677,7 @@ int handle_sita_arrival(config *conf, arrival *arr, service **list){
     }
     else if(arr->checkin_type == INTERNATIONAL){
         // Online test arrival
-        i = find_officer(high_officers, conf->online_off);
+        i = find_officer(high_officers, conf->international_off);
 
         if(i < 0){
             // No officer available
@@ -1269,11 +1269,14 @@ void simulate(config *conf, state *st, result *res, char *checkin, char *test){
         memset(sim_queues, 0, sizeof(long)*conf->off);
         memset(sim_lastdep, 0, sizeof(long)*conf->off);
         memset(sim_low_officers, 0, sizeof(int)*conf->online_off);
+        memset(sim_low_lastdep, 0, sizeof(long)*conf->online_off);
         memset(sim_med_officers, 0, sizeof(int)*conf->national_off);
+        memset(sim_med_lastdep, 0, sizeof(long)*conf->national_off);
         memset(sim_high_officers, 0, sizeof(int)*conf->international_off);
+        memset(sim_high_lastdep, 0, sizeof(long)*conf->international_off);
         memset(sim_test_officers, 0, sizeof(int)*conf->test_off);
-        memset(sim_test_queues, 0, sizeof(int)*conf->test_off);
-        memset(sim_test_lastdep, 0, sizeof(int)*conf->test_off);
+        memset(sim_test_queues, 0, sizeof(long)*conf->test_off);
+        memset(sim_test_lastdep, 0, sizeof(long)*conf->test_off);
         arr_list = NULL;
         serv_list = NULL;
         testserv_list = NULL;

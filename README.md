@@ -37,13 +37,15 @@ directory.
 #### Demo parameters:
 * FILENAME : name of the file where the result will be written 
   (ex. "filename.csv")
+* SEED : initial seed
 * STOP : simulation end time (sec)
 * OFF : number of officers for the check-in queues
 * ONLINEOFF : number of officers for online check-in
 * NATIONALOFF : number of officers for national check-in
 * INTERNATIONALOFF : number of officers for international check-in
 * TESTOFF : number of officers for the test queues
-* SEED : initial seed
+* ITERATIONS: number of times the same simulation will be run
+
 
 #### Check-in area parameters:
 * LAMBDA_1_5 : passenger arrival rate between 1:00:01 and 5:00:00
