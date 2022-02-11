@@ -269,6 +269,7 @@ service *create_service(config *conf, arrival *arr, int officer, char *type){
     new->arrival = arr->time;
     new->officer = officer;
     new->next = NULL;
+    new->withdrawal = 0;
 
     if(new->test > 0){
         //Covid test
@@ -326,8 +327,6 @@ service *create_service(config *conf, arrival *arr, int officer, char *type){
         new->end = -1;
     }
     else{
-        new->withdrawal = 0;
-
         // End time
         if(new->test > 0){
             new->end = new->start + Exponential(1/conf->test_mu, 9);
