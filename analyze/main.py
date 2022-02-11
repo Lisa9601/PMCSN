@@ -1,4 +1,6 @@
 import csv
+import os
+
 import formatter
 import resultFile
 
@@ -10,6 +12,7 @@ file = 'dataset/datasetLA.csv'
 
 fSimulazione = 'dataset/resultSimulation.csv'
 fSimulazioneSita = 'dataset/resultSimulationSita.csv'
+fSimulazioneNoCovidTest = 'dataset/resultNoCovidTest.csv'
 
 """
     Read the dataset from a file
@@ -24,8 +27,8 @@ fSimulazioneSita = 'dataset/resultSimulationSita.csv'
 
 def readDataset(f, search_value, c_name, read_value, d):
     try:
-        df = pd.read_csv(f, usecols=c_name, sep=d)
-        df1 = df[df[read_value] == search_value]
+        dataframe = pd.read_csv(f, usecols=c_name, sep=d)
+        df1 = dataframe[dataframe[read_value] == search_value]
         return df1
     except:
         return False
@@ -40,19 +43,19 @@ def readDataset(f, search_value, c_name, read_value, d):
 """
 
 
-def splitDf(df, column_value, value):
+def splitDf(dataframe, column_value, value):
     try:
-        df1 = df[df[column_value] == value]
+        df1 = dataframe[dataframe[column_value] == value]
         return df1
     except:
         return False
 
 
-def selectMultipleValue(df, column_value, offsetlist, column_name):
+def selectMultipleValue(dataframe, column_value, offset, column_name):
     try:
         df1 = pd.DataFrame(columns=column_name)
-        for index in range(len(offsetlist)):
-            df1 = df1.append(df[df[column_value] == offsetlist[index]], ignore_index=True)
+        for index in range(len(offset)):
+            df1 = df1.append(dataframe[dataframe[column_value] == offset[index]], ignore_index=True)
         return df1
     except:
         return False
@@ -66,10 +69,10 @@ def selectMultipleValue(df, column_value, offsetlist, column_name):
 """
 
 
-def average(df, value):
+def average(dataframe, value):
     try:
-        avg = int(df[value].sum()) / len(df)
-        return avg
+        media = int(dataframe[value].sum()) / len(dataframe)
+        return media
     except:
         return 0
 
@@ -86,7 +89,7 @@ def average(df, value):
 """
 
 
-def istogramma(x, y, xlabel, ylabel, title, name):
+def draw_istogramma(x, y, xlabel, ylabel, title, name):
     SMALL_SIZE = 7
     mpl.rcParams['toolbar'] = 'None'
     plt.bar(x, y, tick_label=x, width=0.8, color=['green'])
@@ -110,15 +113,41 @@ def istogramma(x, y, xlabel, ylabel, title, name):
 """
 
 
-def response_time(df):
+def response_time(dataframe):
     try:
 
-        t = (int(df['0-15'].sum()) * 15 + int(df['16-30'].sum()) * 30 + int(df['31-45'].sum()) * 45 + int(
-            df['46-60'].sum()) * 60 + int(df['61-90'].sum()) * 90 + int(df['91-120'].sum()) * 120 + int(
-            df['120 PLUS'].sum()) * 120) - int(
-            df['Avarege Wait Time'].sum())
+        t = (int(dataframe['0-15'].sum()) * 15 + int(dataframe['16-30'].sum()) * 30 + int(
+            dataframe['31-45'].sum()) * 45 + int(
+            dataframe['46-60'].sum()) * 60 + int(dataframe['61-90'].sum()) * 90 + int(
+            dataframe['91-120'].sum()) * 120 + int(
+            dataframe['120 PLUS'].sum()) * 120)
 
-        passengers = int(df['Total'].sum())
+        passengers = int(dataframe['Total'].sum())
+
+        time = t / passengers
+
+        return time
+    except:
+        return 0
+
+
+"""
+    Compute the service time
+
+    df: Dataframe used for the computation
+"""
+
+
+def service_time(dataframe):
+    try:
+
+        t = (int(dataframe['0-15'].sum()) * 15 + int(dataframe['16-30'].sum()) * 30 + int(
+            dataframe['31-45'].sum()) * 45 + int(
+            dataframe['46-60'].sum()) * 60 + int(dataframe['61-90'].sum()) * 90 + int(
+            dataframe['91-120'].sum()) * 120 + int(
+            dataframe['120 PLUS'].sum()) * 120) - int(dataframe['Avarege Wait Time'].sum())
+
+        passengers = int(dataframe['Total'].sum())
 
         time = t / passengers
 
@@ -212,24 +241,23 @@ def multiplePlot2(x, y1, y2, y3, x_label, y_label, title, name, plot1, plot2, pl
 
 def readUniqueResult(f, c, value):
     try:
-        df = pd.read_csv(f, usecols=c, sep=',')
-        return df[value].unique().tolist()
+        dataframe = pd.read_csv(f, usecols=c, sep=',')
+        return dataframe[value].unique().tolist()
     except:
         return False
 
 
-if __name__ == "__main__":
-
-    formatter.formatter()
+def analisiDataset():
 
     # Analisi del dataset dell'aeroporto di Los Angeles
 
     ora_array = ["00:00 - 1:00", "1:00 - 2:00", "2:00 - 3:00", "3:00 - 4:00", "4:00 - 5:00", "5:00 - 6:00",
-                 "6:00 - 7:00", "7:00 - 8:00", "8:00 - 9:00", "9:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00", "12:00 - 13:00",
-                 "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "17:00 - 18:00", "18:00 - 19:00", "19:00 - 20:00",
-                 "20:00 - 21:00", "21:00 - 22:00", "22:00 - 23:00", "23:00 - 00:00"]
+                 "6:00 - 7:00", "7:00 - 8:00", "8:00 - 9:00", "9:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00",
+                 "12:00 - 13:00", "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "17:00 - 18:00",
+                 "18:00 - 19:00", "19:00 - 20:00", "20:00 - 21:00", "21:00 - 22:00", "22:00 - 23:00", "23:00 - 00:00"]
 
-    column = ["Airport", "Terminal", "Date", "Hour", "Avarege Wait Time", "Max Wait Time", "0-15", "16-30", "31-45", "46-60", "61-90", "91-120",
+    column = ["Airport", "Terminal", "Date", "Hour", "Avarege Wait Time", "Max Wait Time", "0-15", "16-30", "31-45",
+              "46-60", "61-90", "91-120",
               "120 PLUS", "Excluded", "Total", "Flights", "Booths"]
 
     averageWaitTimeNational = []
@@ -238,20 +266,89 @@ if __name__ == "__main__":
     totalNational = []
     rspNational = []
     rspInternational = []
-    for i in range(len(ora_array)):
-        averageWaitTimeNational.append(average(splitDf(readDataset(file, "National", column, "Terminal", ';'), "Hour", ora_array[i]),"Avarege Wait Time"))
-        averageWaitTimeInternational.append(average(splitDf(readDataset(file, "International", column, "Terminal", ';'), "Hour", ora_array[i]),"Avarege Wait Time"))
-        totalInternational.append(average(splitDf(readDataset(file, "International", column, "Terminal", ';'), "Hour", ora_array[i]),"Total"))
-        totalNational.append(average(splitDf(readDataset(file, "National", column, "Terminal", ';'), "Hour", ora_array[i]), "Total"))
-        rspNational.append(response_time(splitDf(readDataset(file, "National", column, "Terminal", ';'), "Hour", ora_array[i])))
-        rspInternational.append(response_time(splitDf(readDataset(file, "International", column, "Terminal", ';'), "Hour", ora_array[i])))
+    serviceNational = []
+    serviceInternational = []
 
-    istogramma(ora_array, averageWaitTimeNational, 'Hour', 'Avarage Wait Time', 'National flight', "graph/averageWaitTimeNational.png")
-    istogramma(ora_array, averageWaitTimeNational, 'Hour', 'Avarage Wait Time', 'International flight', "graph/averageWaitTimeNational.png")
-    istogramma(ora_array, totalInternational, 'Hour', 'Number of passengers', 'International flight', "graph/totalInternational.png")
-    istogramma(ora_array, totalNational, 'Hour', 'Number of passengers', 'National flight', "graph/totalNational.png")
-    istogramma(ora_array, rspNational, 'Hour', 'Response Time', 'National flight', "graph/rspNational.png")
-    istogramma(ora_array, rspInternational, 'Hour', 'Response Time', 'International flight', "graph/rspInternational.png")
+    for i in range(len(ora_array)):
+        averageWaitTimeNational.append(
+            average(splitDf(readDataset(file, "National", column, "Terminal", ';'), "Hour", ora_array[i]),
+                    "Avarege Wait Time"))
+        averageWaitTimeInternational.append(
+            average(splitDf(readDataset(file, "International", column, "Terminal", ';'), "Hour", ora_array[i]),
+                    "Avarege Wait Time"))
+        totalInternational.append(
+            average(splitDf(readDataset(file, "International", column, "Terminal", ';'), "Hour", ora_array[i]),
+                    "Total"))
+        totalNational.append(
+            average(splitDf(readDataset(file, "National", column, "Terminal", ';'), "Hour", ora_array[i]), "Total"))
+        rspNational.append(
+            response_time(splitDf(readDataset(file, "National", column, "Terminal", ';'), "Hour", ora_array[i])))
+        rspInternational.append(
+            response_time(splitDf(readDataset(file, "International", column, "Terminal", ';'), "Hour", ora_array[i])))
+        serviceNational.append(
+            service_time(splitDf(readDataset(file, "National", column, "Terminal", ';'), "Hour", ora_array[i])))
+        serviceInternational.append(
+            service_time(splitDf(readDataset(file, "International", column, "Terminal", ';'), "Hour", ora_array[i])))
+
+    # Grafici valori dataset
+
+    draw_istogramma(ora_array, averageWaitTimeNational, 'Hour', 'Avarage Wait Time', 'National flight',
+                    "graph/averageWaitTimeNational.png")
+    draw_istogramma(ora_array, averageWaitTimeNational, 'Hour', 'Avarage Wait Time', 'International flight',
+                    "graph/averageWaitTimeNational.png")
+    draw_istogramma(ora_array, totalInternational, 'Hour', 'Number of passengers', 'International flight',
+                    "graph/totalInternational.png")
+    draw_istogramma(ora_array, totalNational, 'Hour', 'Number of passengers', 'National flight',
+                    "graph/totalNational.png")
+    draw_istogramma(ora_array, rspNational, 'Hour', 'Response Time', 'National flight', "graph/rspNational.png")
+    draw_istogramma(ora_array, rspInternational, 'Hour', 'Response Time', 'International flight',
+                    "graph/rspInternational.png")
+
+    total = []
+
+    for i in range(len(totalNational)):
+        total.append(totalNational[i] + totalInternational[i])
+
+    national = []
+
+    for i in range(len(totalNational)):
+        if total[i] > 0:
+            national.append(totalNational[i] / total[i])
+        else:
+            national.append(0)
+
+    international = []
+
+    for i in range(len(totalNational)):
+        if total[i] > 0:
+            international.append(totalInternational[i] / total[i])
+        else:
+            international.append(0)
+
+    data = {'ora': ora_array, 'national': national, 'international': international}
+    df = pd.DataFrame(data=data)
+
+    avg = df['international'].sum() / 24
+
+    df.to_excel("output.xlsx", sheet_name='Sheet_name_1')
+
+    draw_istogramma(ora_array, total, 'Hour', 'Number of passengers', 'Flight', "graph/totalPassengers.png")
+
+
+if __name__ == "__main__":
+
+    if os.path.exists(fSimulazione):
+        os.remove(fSimulazione)
+
+    if os.path.exists(fSimulazioneSita):
+        os.remove(fSimulazioneSita)
+
+    if os.path.exists(fSimulazioneNoCovidTest):
+        os.remove(fSimulazioneNoCovidTest)
+
+    formatter.formatter()
+
+    analisiDataset()
 
     # Analisi dei risultati della simulazione
 
@@ -262,167 +359,114 @@ if __name__ == "__main__":
 
     columnSimulation = readFile(fSimulazione)
 
-    num = readUniqueResult(fSimulazione, columnSimulation, 'off')
-    num.sort()
-    off = []
-    for e in num:
-        if e != 3:
-            off.append(e)
+    num_off = readUniqueResult(fSimulazione, columnSimulation, 'off')
+    num_off.sort()
 
-    dfSingleQueue = selectMultipleValue(
-        splitDf(readDataset(fSimulazione, 'single-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                '(null)'), 'off', off, columnSimulation)
-    responseSinqleQueue = dfSingleQueue['mresponse'].tolist()
-    waitSingleQueue = dfSingleQueue['mwait'].tolist()
+    # Single queue with single covid test
 
     dfSingleQueueCovidTest = selectMultipleValue(
         splitDf(readDataset(fSimulazione, 'single-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                'single-queue'), 'off', off, columnSimulation)
+                'single-queue'), 'off', num_off, columnSimulation)
     responseSinqleQueueCovidTest = dfSingleQueueCovidTest['mresponse'].tolist()
     waitSingleQueueCovidTest = dfSingleQueueCovidTest['mwait'].tolist()
 
+    # Single queue with multi covid test
+
     dfSingleQueueMultiCovidTest = selectMultipleValue(
         splitDf(readDataset(fSimulazione, 'single-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                'multi-queue'), 'off', off, columnSimulation)
+                'multi-queue'), 'off', num_off, columnSimulation)
     responseSinqleQueueMultiCovidTest = dfSingleQueueMultiCovidTest['mresponse'].tolist()
     waitSingleQueueMultiCovidTest = dfSingleQueueMultiCovidTest['mwait'].tolist()
 
-    dfMultiQueue = selectMultipleValue(
-        splitDf(readDataset(fSimulazione, 'multi-queue', columnSimulation, 'checkin_type', ','), 'test_type', '(null)'),
-        'off', off, columnSimulation)
-    responseMultiQueue = dfMultiQueue['mresponse'].tolist()
-    waitMultiQueue = dfMultiQueue['mwait'].tolist()
+    # Multi queue with single covid test
 
     dfMultiQueueCovidTest = selectMultipleValue(
         splitDf(readDataset(fSimulazione, 'multi-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                'single-queue'), 'off', off, columnSimulation)
+                'single-queue'), 'off', num_off, columnSimulation)
     responseMultiQueueCovidTest = dfMultiQueueCovidTest['mresponse'].tolist()
     waitMultiQueueCovidTest = dfMultiQueueCovidTest['mwait'].tolist()
 
+    # Multi queue with multi covid test
+
     dfMultiQueueMultiCovidTest = selectMultipleValue(
         splitDf(readDataset(fSimulazione, 'multi-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                'multi-queue'), 'off', off, columnSimulation)
+                'multi-queue'), 'off', num_off, columnSimulation)
     responseMultiQueueMultiCovidTest = dfMultiQueueMultiCovidTest['mresponse'].tolist()
     waitMultiQueueMultiCovidTest = dfMultiQueueMultiCovidTest['mwait'].tolist()
 
-    #Grafici per la single queue
-
-    multiplePlot(off, responseSinqleQueue, waitSingleQueue, 'Number of servers', 'Time', 'Single queue',
-                 'graph/singlequeue.png', 'Response Time', 'Wait Time')
-    multiplePlot(off, responseSinqleQueueCovidTest, waitSingleQueueCovidTest, 'Number of servers', 'Time',
-                 'Single queue with single queue covid test', 'graph/singleQueueCovidTest.png', 'Response Time',
-                 'Wait Time')
-    multiplePlot(off, responseSinqleQueueMultiCovidTest, waitSingleQueueMultiCovidTest, 'Number of servers', 'Time',
-                 'Single queue with multi queue covid test', 'graph/singleQueueMultiCovidTest.png', 'Response Time',
-                 'Wait Time')
-
-    # Grafici per la multi queue
-
-    multiplePlot(off, responseMultiQueue, waitMultiQueue, 'Number of servers', 'Time', 'Multi queue',
-                 'graph/multiqueue.png', 'Response Time', 'Wait Time')
-    multiplePlot(off, responseMultiQueueCovidTest, waitMultiQueueCovidTest, 'Number of servers', 'Time',
-                 'Multi queue with single queue covid test', 'graph/multiQueueSingleCovidTest.png', 'Response Time',
-                 'Wait Time')
-    multiplePlot(off, responseMultiQueueMultiCovidTest, waitMultiQueueMultiCovidTest, 'Number of servers', 'Time',
-                 'Multi queue with multi queue covid test', 'graph/multiQueueMultiCovidTest.png', 'Response Time',
-                 'Wait Time')
-
     # Analisi sita queue
+
     resultFile.creaFileFinaleSita("dataset/sita.csv", "dataset/sita1.csv", "dataset/sita2.csv", "dataset/sita3.csv",
                                   fSimulazioneSita)
     num = readUniqueResult(fSimulazioneSita, columnSimulation, 'off')
     num.sort()
 
-    dfSitaQueue = selectMultipleValue(
-        splitDf(readDataset(fSimulazioneSita, 'sita-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                '(null)'), 'off', num, columnSimulation)
-    responseSitaQueue = dfSitaQueue['mresponse'].tolist()
-    waitSitaQueue = dfSitaQueue['mwait'].tolist()
-    withdrawalSitaQueue = dfSitaQueue['withdrawal'].tolist()
+    # Sita queue with single covid test
 
     dfSitaQueueCovidTest = selectMultipleValue(
-        splitDf(readDataset(fSimulazioneSita, 'sita-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                'single-queue'), 'off', num, columnSimulation)
+        splitDf(readDataset(fSimulazione, 'sita-queue', columnSimulation, 'checkin_type', ','), 'test_type',
+                'single-queue'), 'off', num_off, columnSimulation)
     responseSitaQueueCovidTest = dfSitaQueueCovidTest['mresponse'].tolist()
     waitSitaQueueCovidTest = dfSitaQueueCovidTest['mwait'].tolist()
     withdrawalSitaQueueCovidTest = dfSitaQueueCovidTest['withdrawal'].tolist()
     sitaTestwithdrawal = dfSitaQueueCovidTest['test_withdrawal'].tolist()
 
+    # Sita queue with multi covid test
+
     dfSitaQueueMultiCovidTest = selectMultipleValue(
-        splitDf(readDataset(fSimulazioneSita, 'sita-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                'multi-queue'), 'off', num, columnSimulation)
+        splitDf(readDataset(fSimulazione, 'sita-queue', columnSimulation, 'checkin_type', ','), 'test_type',
+                'multi-queue'), 'off', num_off, columnSimulation)
     responseSitaQueueMultiCovidTest = dfSitaQueueMultiCovidTest['mresponse'].tolist()
     waitSitaQueueMultiCovidTest = dfSitaQueueMultiCovidTest['mwait'].tolist()
     withdrawalSitaQueueMultiCovidTest = dfSitaQueueMultiCovidTest['withdrawal'].tolist()
     sitaMultiTestwithdrawal = dfSitaQueueMultiCovidTest['test_withdrawal'].tolist()
 
-    multiplePlot(num, responseSitaQueue, waitSitaQueue, 'Number of servers', 'Time', 'Sita queue',
-                 'graph/sitaqueue.png', 'Response Time', 'Wait Time')
-    multiplePlot(num, responseSitaQueueCovidTest, waitSitaQueueCovidTest, 'Number of servers', 'Time',
-                 'Sita queue with single queue covid test', 'graph/sitaQueueSingleCovidTest.png', 'Response Time',
-                 'Wait Time')
-    multiplePlot(num, responseSitaQueueMultiCovidTest, waitSitaQueueMultiCovidTest, 'Number of servers', 'Time',
-                 'sita queue with multi queue covid test', 'graph/sitaQueueMultiCovidTest.png', 'Response Time',
-                 'Wait Time')
-
     # Analisi
-
-    dfSQ = selectMultipleValue(
-        splitDf(readDataset(fSimulazione, 'single-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                '(null)'), 'off', num, columnSimulation)
-    withdrawalSingleQueue = dfSQ['withdrawal'].tolist()
 
     dfSQCovidTest = selectMultipleValue(
         splitDf(readDataset(fSimulazione, 'single-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                'single-queue'), 'off', num, columnSimulation)
+                'single-queue'), 'off', num_off, columnSimulation)
     withdrawalSingleQueueCovidTest = dfSQCovidTest['withdrawal'].tolist()
     sqTestwithdrawal = dfSQCovidTest['test_withdrawal'].tolist()
 
     dfSQMultiCovidTest = selectMultipleValue(
         splitDf(readDataset(fSimulazione, 'single-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                'multi-queue'), 'off', num, columnSimulation)
+                'multi-queue'), 'off', num_off, columnSimulation)
     withdrawalSingleQueueMultiCovidTest = dfSQMultiCovidTest['withdrawal'].tolist()
     sqMultiTestwithdrawal = dfSQMultiCovidTest['test_withdrawal'].tolist()
 
-    dfMQ = selectMultipleValue(
-        splitDf(readDataset(fSimulazione, 'multi-queue', columnSimulation, 'checkin_type', ','), 'test_type', '(null)'),
-        'off', num, columnSimulation)
-    withdrawalMultiQueue = dfMQ['withdrawal'].tolist()
-
     dfMQCovidTest = selectMultipleValue(
         splitDf(readDataset(fSimulazione, 'multi-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                'single-queue'), 'off', num, columnSimulation)
+                'single-queue'), 'off', num_off, columnSimulation)
     withdrawalMultiQueueCovidTest = dfMQCovidTest['withdrawal'].tolist()
     mqTestwithdrawal = dfMQCovidTest['test_withdrawal'].tolist()
 
     dfMQMultiCovidTest = selectMultipleValue(
         splitDf(readDataset(fSimulazione, 'multi-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                'multi-queue'), 'off', num, columnSimulation)
+                'multi-queue'), 'off', num_off, columnSimulation)
     withdrawalMultiQueueMultiCovidTest = dfMQMultiCovidTest['withdrawal'].tolist()
     mqMultiTestwithdrawal = dfMQMultiCovidTest['test_withdrawal'].tolist()
 
-    multiplePlot2(num, withdrawalSingleQueue, withdrawalMultiQueue, withdrawalSitaQueue, 'Number of servers',
-                  'Withdrawal', 'Withdrawal', 'graph/withdrawalqueue.png', 'withdrawal Single queue',
-                  'withdrawal Multi queue', 'withdrawal Sita queue')
+    # Grafici delle perdite
 
-    multiplePlot2(num, withdrawalSingleQueueCovidTest, withdrawalMultiQueueCovidTest, withdrawalSitaQueueCovidTest, 'Number of servers',
+    multiplePlot2(num_off, withdrawalSingleQueueCovidTest, withdrawalMultiQueueCovidTest, withdrawalSitaQueueCovidTest, 'Number of servers',
                   'Withdrawal', 'Withdrawal with single queue covid test', 'graph/withdrawalqueueCovidTest.png', 'withdrawal Single queue',
                   'withdrawal Multi queue', 'withdrawal Sita queue')
 
-    multiplePlot2(num, withdrawalSingleQueueMultiCovidTest, withdrawalMultiQueueMultiCovidTest, withdrawalSitaQueueMultiCovidTest,
+    multiplePlot2(num_off, withdrawalSingleQueueMultiCovidTest, withdrawalMultiQueueMultiCovidTest, withdrawalSitaQueueMultiCovidTest,
                   'Number of servers',
                   'Withdrawal', 'Withdrawal with multi queue covid test', 'graph/withdrawalqueueMultiCovidTest.png',
                   'withdrawal Single queue',
                   'withdrawal Multi queue', 'withdrawal Sita queue')
 
-    multiplePlot2(num, sqTestwithdrawal, mqTestwithdrawal,
+    multiplePlot2(num_off, sqTestwithdrawal, mqTestwithdrawal,
                   sitaTestwithdrawal,
                   'Number of servers',
                   'Withdrawal', 'Covid test withdrawal with single queue', 'graph/testcovid.png',
                   'withdrawal Single queue',
                   'withdrawal Multi queue', 'withdrawal Sita queue')
 
-    multiplePlot2(num, sqMultiTestwithdrawal, mqMultiTestwithdrawal,
+    multiplePlot2(num_off, sqMultiTestwithdrawal, mqMultiTestwithdrawal,
                   sitaMultiTestwithdrawal,
                   'Number of servers',
                   'Withdrawal', 'Covid test withdrawal with multi queue', 'graph/testcovidMulti.png',
@@ -433,13 +477,13 @@ if __name__ == "__main__":
 
     dfSita1 = selectMultipleValue(
         splitDf(readDataset(fSimulazione, 'sita-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                '(null)'), 'off', num, columnSimulation)
+                'single-queue'), 'off', num, columnSimulation)
     responseSita1 = dfSita1['mresponse'].tolist()
     waitSita1 = dfSita1['mwait'].tolist()
 
     dfSita2 = selectMultipleValue(
         splitDf(readDataset(fSimulazioneSita, 'sita-queue', columnSimulation, 'checkin_type', ','), 'test_type',
-                '(null)'), 'off', num, columnSimulation)
+                'single-queue'), 'off', num, columnSimulation)
     responseSita2 = dfSita2['mresponse'].tolist()
     waitSita2 = dfSita2['mwait'].tolist()
 
@@ -450,3 +494,114 @@ if __name__ == "__main__":
     multiplePlot(num, waitSita1, waitSita2, 'Number of servers', 'Time',
                  'Wait time sita queue', 'graph/sitaQueueConfrontoWait.png', 'sita1',
                  'sita2')
+
+    # Confronto tempi di attesa delle tre configurazioni
+
+    waitSQCovidTest = dfSQCovidTest['mwait'].tolist()
+    waitMQCovidTest = dfMQCovidTest['mwait'].tolist()
+
+    multiplePlot2(num_off, waitSQCovidTest, waitMQCovidTest, waitSitaQueueCovidTest, 'Number of servers',
+                  'Average Wait time', 'Average Wait time with single covid test queue', 'graph/confrontoAverageWaitTimeCovidTest.png',
+                  'Average Single queue',
+                  'Average Multi queue', 'Average Sita queue')
+
+    waitSQMultiCovidTest = dfSQMultiCovidTest['mwait'].tolist()
+    waitMQMultiCovidTest = dfMQMultiCovidTest['mwait'].tolist()
+
+    multiplePlot2(num_off, waitSQMultiCovidTest, waitMQMultiCovidTest, waitSitaQueueMultiCovidTest, 'Number of servers',
+                  'Average Wait time', 'Average Wait time with multi covid test queue',
+                  'graph/confrontoAverageWaitTimeMultiCovidTest.png',
+                  'Average Single queue',
+                  'Average Multi queue', 'Average Sita queue')
+
+    # Confronto tempi di risposta delle tre configurazioni
+
+    rspSQCovidTest = dfSQCovidTest['mresponse'].tolist()
+    rspMQCovidTest = dfMQCovidTest['mresponse'].tolist()
+
+    multiplePlot2(num_off, rspSQCovidTest, rspMQCovidTest, responseSitaQueueCovidTest, 'Number of servers',
+                  'Average Response time', 'Average Response time with single covid test queue',
+                  'graph/confrontoAverageResponseTimeCovidTest.png',
+                  'Average Single queue',
+                  'Average Multi queue', 'Average Sita queue')
+
+    rspSQMultiCovidTest = dfSQMultiCovidTest['mresponse'].tolist()
+    rspMQMultiCovidTest = dfMQMultiCovidTest['mresponse'].tolist()
+
+    multiplePlot2(num_off, rspSQMultiCovidTest, rspMQMultiCovidTest, responseSitaQueueMultiCovidTest, 'Number of servers',
+                  'Average Response time', 'Average Response time with multi covid test queue',
+                  'graph/confrontoAverageResponseTimeMultiCovidTest.png',
+                  'Average Single queue',
+                  'Average Multi queue', 'Average Sita queue')
+
+    resultFile.creaFileFinale("dataset/noCovidTest.csv", "dataset/noCovidTest1.csv", "dataset/noCovidTest2.csv",
+                              "dataset/noCovidTest3.csv", "dataset/noCovidTest4.csv", fSimulazioneNoCovidTest)
+
+    # Single queue without covid test
+
+    dfSingleQueue = selectMultipleValue(
+        splitDf(readDataset(fSimulazioneNoCovidTest, 'single-queue', columnSimulation, 'checkin_type', ','), 'test_type',
+                'single-queue'), 'off', num_off, columnSimulation)
+
+    responseSinqleQueue = dfSingleQueue['mresponse'].tolist()
+    waitSingleQueue = dfSingleQueue['mwait'].tolist()
+
+    # Multi queue without covid test
+
+    dfMultiQueue = selectMultipleValue(
+        splitDf(readDataset(fSimulazioneNoCovidTest, 'multi-queue', columnSimulation, 'checkin_type', ','), 'test_type', 'single-queue'),
+        'off', num_off, columnSimulation)
+    responseMultiQueue = dfMultiQueue['mresponse'].tolist()
+    waitMultiQueue = dfMultiQueue['mwait'].tolist()
+
+    # Sita queue without covid test
+
+    dfSitaQueue = selectMultipleValue(
+        splitDf(readDataset(fSimulazioneNoCovidTest, 'sita-queue', columnSimulation, 'checkin_type', ','), 'test_type',
+                'single-queue'), 'off', num, columnSimulation)
+    responseSitaQueue = dfSitaQueue['mresponse'].tolist()
+    waitSitaQueue = dfSitaQueue['mwait'].tolist()
+    withdrawalSitaQueue = dfSitaQueue['withdrawal'].tolist()
+
+    dfSQ = selectMultipleValue(
+        splitDf(readDataset(fSimulazioneNoCovidTest, 'single-queue', columnSimulation, 'checkin_type', ','), 'test_type',
+                'single-queue'), 'off', num, columnSimulation)
+    withdrawalSingleQueue = dfSQ['withdrawal'].tolist()
+
+    dfMQ = selectMultipleValue(
+        splitDf(readDataset(fSimulazioneNoCovidTest, 'multi-queue', columnSimulation, 'checkin_type', ','), 'test_type', 'single-queue'),
+        'off', num, columnSimulation)
+    withdrawalMultiQueue = dfMQ['withdrawal'].tolist()
+
+    waitSQ = dfSQ['mwait'].tolist()
+    waitMQ = dfMQ['mwait'].tolist()
+
+    rspSQ = dfSQ['mresponse'].tolist()
+    rspMQ = dfMQ['mresponse'].tolist()
+
+    multiplePlot2(num, waitSQ, waitMQ, waitSita2, 'Number of servers',
+                  'Average Response time', 'Average Response time without covid test', 'graph/confrontoAverageResponseTime.png',
+                  'Average Single queue',
+                  'Average Multi queue', 'Average Sita queue')
+
+    multiplePlot2(num, withdrawalSingleQueue, withdrawalMultiQueue, withdrawalSitaQueue, 'Number of servers',
+                  'Withdrawal', 'Withdrawal', 'graph/withdrawalqueue.png', 'withdrawal Single queue',
+                  'withdrawal Multi queue', 'withdrawal Sita queue')
+
+    multiplePlot2(num, rspSQ, rspMQ, responseSitaQueue, 'Number of servers',
+                  'Average Response time', 'Average Response time without covid test',
+                  'graph/confrontoAverageResponseTime.png',
+                  'Average Single queue',
+                  'Average Multi queue', 'Average Sita queue')
+
+    # Grafici per la single queue
+
+    multiplePlot(num_off, responseSinqleQueueCovidTest, responseSinqleQueueMultiCovidTest, 'Number of servers', 'Time',
+                 'Single queue with single covid test vs single queue with multi covid test',
+                 'graph/ConfrontoResponseSingle.png', 'Single queue with single covid test',
+                 'single queue with multi covid test')
+
+    multiplePlot(num_off, waitSingleQueueCovidTest, waitSingleQueueMultiCovidTest, 'Number of servers', 'Time',
+                 'Single queue with single covid test vs single queue with multi covid test',
+                 'graph/ConfrontoWaitSingle.png', 'Single queue with single covid test',
+                 'single queue with multi covid test')
