@@ -823,6 +823,7 @@ int handle_single_test_service(config *conf, service *serv, arrival **list, resu
 
     if(serv->withdrawal > 0){
         res->withdrawal_test++;
+        return 0;
     }
     else{
         test_officers[serv->officer] = 0; // Free officer
@@ -893,6 +894,7 @@ int handle_multi_test_service(config *conf, service *serv, arrival **list, resul
 
     if(serv->withdrawal > 0){
         res->withdrawal_test++;
+        return 0;
     }
     else{
 
